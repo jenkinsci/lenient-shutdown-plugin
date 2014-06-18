@@ -21,7 +21,6 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import hudson.Extension;
@@ -29,6 +28,8 @@ import hudson.model.AbstractProject;
 import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
+
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -43,19 +44,30 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
     @Override
     public CauseOfBlockage canRun(Queue.Item item) {
+        CauseOfBlockage blockage = null; //Allow to run by default
 
-        if (!(item.task instanceof AbstractProject)
-                || !ShutdownManageLink.getInstance().isGoingToShutdown()) {
-            return null;
+        ShutdownManageLink shutdownManageLink = ShutdownManageLink.getInstance();
+        boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
+
+        if (isGoingToShutdown
+                && item.task instanceof AbstractProject
+                && !shutdownManageLink.wasAlreadyQueued(item.id)) {
+            Set<String> upstreamProjects = QueueUtils.getUpstreamProjectNames(item);
+
+            if (!shutdownManageLink.isAnyAllowedUpstreamProject(upstreamProjects)) {
+                logger.fine(String.format("Preventing project %s from running, since lenient shutdown is active",
+                        item.getDisplayName()));
+                blockage = new ShutdownBlockage();
+            }
         }
 
-        //Currently blocking all builds, this is where the logic should be.
-        return new CauseOfBlockage() {
-            @Override
-            public String getShortDescription() {
-                return "Jenkins is about to shut down";
-            }
-        };
+        //Set the project as allowed upstream project if it was not blocked and shutdown enabled:
+        if (blockage == null && isGoingToShutdown) {
+            AbstractProject project = (AbstractProject)item.task;
+            shutdownManageLink.addAllowedUpstreamProject(project);
+        }
+
+        return blockage;
     }
 
 }

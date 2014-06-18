@@ -25,13 +25,19 @@
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import hudson.Extension;
+import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.ManagementLink;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
 * Adds a link on the manage Jenkins page for lenient shutdown.
@@ -40,6 +46,11 @@ import java.util.List;
 */
 @Extension
 public class ShutdownManageLink extends ManagementLink  {
+
+    private Set<String> allowedUpstreamProjectNames = Collections.synchronizedSet(
+            new HashSet<String>());
+    private Set<Integer> alreadyQueuedItemIds = Collections.synchronizedSet(
+            new HashSet<Integer>());
 
     private boolean isGoingToShutdown;
     private static ShutdownManageLink instance;
@@ -80,11 +91,15 @@ public class ShutdownManageLink extends ManagementLink  {
 
     /**
      * Gets the display name for this plugin on the management page.
+     * Varies depending on if lenient shutdown is already enabled or not.
      * @return display name
      */
     @Override
     public String getDisplayName() {
-        return Messages.LinkTitle();
+        if (isGoingToShutdown()) {
+            return Messages.CancelShutdownTitle();
+        }
+        return Messages.ActivateShutdownTitle();
     }
 
     /**
@@ -94,6 +109,20 @@ public class ShutdownManageLink extends ManagementLink  {
     @Override
     public String getUrlName() {
         return URL;
+    }
+
+    /**
+     * Gets the description of this plugin.
+     * Varies depending on if lenient shutdown is already enabled or not.
+     * @return description
+     */
+    @Override
+    public String getDescription() {
+        String description = null;
+        if (!isGoingToShutdown()) {
+            description = Messages.Description();
+        }
+        return description;
     }
 
     /**
@@ -120,7 +149,63 @@ public class ShutdownManageLink extends ManagementLink  {
      */
     public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
         toggleGoingToShutdown();
+        if (isGoingToShutdown()) {
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.submit(new Runnable() {
+                @Override
+                public void run() {
+                    allowedUpstreamProjectNames.clear();
+                    allowedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames());
+                    allowedUpstreamProjectNames.addAll(QueueUtils.getAllowedQueueProjectNames());
+
+                    alreadyQueuedItemIds.clear();
+                    alreadyQueuedItemIds.addAll(QueueUtils.getAllowedQueueItemIds());
+                }
+            });
+        }
         rsp.sendRedirect2(req.getContextPath() + "/manage");
+    }
+
+    /**
+     * Checks if any of the project names in argument list are marked as white listed upstream projects.
+     * @param projectNames the list of project names to check
+     * @return true if at least one of the projects is white listed
+     */
+    public boolean isAnyAllowedUpstreamProject(Set<String> projectNames) {
+        boolean isAllowed = false;
+        for (String project : projectNames) {
+            if (isAllowedUpstreamProject(project)) {
+                isAllowed = true;
+                break;
+            }
+        }
+        return isAllowed;
+    }
+
+    /**
+     * Checks if argument project name is marked as a white listed upstream project.
+     * @param projectName the project name to check
+     * @return true if white listed
+     */
+    public boolean isAllowedUpstreamProject(String projectName) {
+        return allowedUpstreamProjectNames.contains(projectName);
+    }
+
+    /**
+     * Adds argument project to the set of white listed upstream project names.
+     * @param project the project to add to white list
+     */
+    public void addAllowedUpstreamProject(AbstractProject project) {
+        allowedUpstreamProjectNames.add(project.getFullName());
+    }
+
+    /**
+     * Returns true if argument queue item was queued when lenient shutdown was activated.
+     * @param id the queue item id to check for
+     * @return true if it was queued
+     */
+    public boolean wasAlreadyQueued(Integer id) {
+        return alreadyQueuedItemIds.contains(id);
     }
 
 }
