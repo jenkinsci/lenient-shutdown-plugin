@@ -28,6 +28,8 @@ import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.ManagementLink;
+import hudson.security.Permission;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -126,6 +128,15 @@ public class ShutdownManageLink extends ManagementLink  {
     }
 
     /**
+     * Returns required permission to use this plugin.
+     * @return Jenkins administer permission.
+     */
+    @Override
+    public Permission getRequiredPermission() {
+        return Jenkins.ADMINISTER;
+    }
+
+    /**
      * Toggle the lenient shutdown state.
      */
     public void toggleGoingToShutdown() {
@@ -148,6 +159,8 @@ public class ShutdownManageLink extends ManagementLink  {
      * @throws IOException if unable to redirect
      */
     public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        Jenkins.getInstance().checkPermission(getRequiredPermission());
+
         toggleGoingToShutdown();
         if (isGoingToShutdown()) {
             ExecutorService service = Executors.newSingleThreadExecutor();
