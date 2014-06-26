@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright 2014 Sony Mobile Communications AB. All rights reserved.
+ *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,14 @@ import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.ManagementLink;
+import org.apache.commons.collections.CollectionUtils;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +51,7 @@ import java.util.concurrent.Executors;
 @Extension
 public class ShutdownManageLink extends ManagementLink  {
 
-    private Set<String> allowedUpstreamProjectNames = Collections.synchronizedSet(
+    private Set<String> permittedUpstreamProjectNames = Collections.synchronizedSet(
             new HashSet<String>());
     private Set<Integer> alreadyQueuedItemIds = Collections.synchronizedSet(
             new HashSet<Integer>());
@@ -60,7 +62,7 @@ public class ShutdownManageLink extends ManagementLink  {
     /**
      * URL to the plugin.
      */
-    private static final String URL = "lenient-shutdown-plugin";
+    private static final String URL = "lenientshutdown";
 
     /**
      * Icon used by this plugin.
@@ -128,7 +130,7 @@ public class ShutdownManageLink extends ManagementLink  {
     }
 
     /**
-     * Returns required permission to use this plugin.
+     * Returns required permission to change the global shutdown mode.
      * @return Jenkins administer permission.
      */
     @Override
@@ -167,12 +169,12 @@ public class ShutdownManageLink extends ManagementLink  {
             service.submit(new Runnable() {
                 @Override
                 public void run() {
-                    allowedUpstreamProjectNames.clear();
-                    allowedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames());
-                    allowedUpstreamProjectNames.addAll(QueueUtils.getAllowedQueueProjectNames());
+                    permittedUpstreamProjectNames.clear();
+                    permittedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames());
+                    permittedUpstreamProjectNames.addAll(QueueUtils.getPermittedQueueProjectNames());
 
                     alreadyQueuedItemIds.clear();
-                    alreadyQueuedItemIds.addAll(QueueUtils.getAllowedQueueItemIds());
+                    alreadyQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds());
                 }
             });
         }
@@ -184,32 +186,17 @@ public class ShutdownManageLink extends ManagementLink  {
      * @param projectNames the list of project names to check
      * @return true if at least one of the projects is white listed
      */
-    public boolean isAnyAllowedUpstreamProject(Set<String> projectNames) {
-        boolean isAllowed = false;
-        for (String project : projectNames) {
-            if (isAllowedUpstreamProject(project)) {
-                isAllowed = true;
-                break;
-            }
-        }
-        return isAllowed;
-    }
-
-    /**
-     * Checks if argument project name is marked as a white listed upstream project.
-     * @param projectName the project name to check
-     * @return true if white listed
-     */
-    public boolean isAllowedUpstreamProject(String projectName) {
-        return allowedUpstreamProjectNames.contains(projectName);
+    public boolean isAnyPermittedUpstreamProject(Set<String> projectNames) {
+        Collection intersection = CollectionUtils.intersection(projectNames, permittedUpstreamProjectNames);
+        return !intersection.isEmpty();
     }
 
     /**
      * Adds argument project to the set of white listed upstream project names.
      * @param project the project to add to white list
      */
-    public void addAllowedUpstreamProject(AbstractProject project) {
-        allowedUpstreamProjectNames.add(project.getFullName());
+    public void addPermittedUpstreamProject(AbstractProject project) {
+        permittedUpstreamProjectNames.add(project.getFullName());
     }
 
     /**
@@ -217,7 +204,7 @@ public class ShutdownManageLink extends ManagementLink  {
      * @param id the queue item id to check for
      * @return true if it was queued
      */
-    public boolean wasAlreadyQueued(Integer id) {
+    public boolean wasAlreadyQueued(int id) {
         return alreadyQueuedItemIds.contains(id);
     }
 

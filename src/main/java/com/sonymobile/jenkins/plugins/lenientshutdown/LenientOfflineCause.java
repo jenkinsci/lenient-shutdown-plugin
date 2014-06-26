@@ -22,18 +22,24 @@
  *  THE SOFTWARE.
  */
 
+package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-style(type: "text/css", '''
-    #lenient-shutdown-msg {
-        font-weight: bold;
-        font-size: larger;
-        color: white;
-        background-color: #ef2929;
-        text-align: center;
-        padding: 0.5em;
+import hudson.model.User;
+import hudson.slaves.OfflineCause;
+
+/**
+ * Node offline cause, used when a node is taken offline leniently.
+ *
+ * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
+ */
+public class LenientOfflineCause extends OfflineCause.UserCause {
+
+    /**
+     * Constructor.
+     * @param user the user that set the node offline
+     */
+    public LenientOfflineCause(User user) {
+        super(user, Messages.TakenOfflineLeniently());
     }
-''')
 
-if(it.goingToShutdown) {
-    div(id: "lenient-shutdown-msg", it.shutdownMessage)
 }

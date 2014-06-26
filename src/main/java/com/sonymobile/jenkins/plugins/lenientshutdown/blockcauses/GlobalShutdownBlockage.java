@@ -22,18 +22,21 @@
  *  THE SOFTWARE.
  */
 
+package com.sonymobile.jenkins.plugins.lenientshutdown.blockcauses;
 
-style(type: "text/css", '''
-    #lenient-shutdown-msg {
-        font-weight: bold;
-        font-size: larger;
-        color: white;
-        background-color: #ef2929;
-        text-align: center;
-        padding: 0.5em;
+import com.sonymobile.jenkins.plugins.lenientshutdown.Messages;
+import hudson.model.queue.CauseOfBlockage;
+
+/**
+ * Blockage used when lenient shutdown mode is active.
+ *
+ * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
+ */
+public class GlobalShutdownBlockage extends CauseOfBlockage {
+
+    @Override
+    public String getShortDescription() {
+        return Messages.IsAboutToShutDown();
     }
-''')
 
-if(it.goingToShutdown) {
-    div(id: "lenient-shutdown-msg", it.shutdownMessage)
 }

@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright 2014 Sony Mobile Communications AB. All rights reserved.
+ *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,33 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-import hudson.model.queue.CauseOfBlockage;
+import hudson.Extension;
+import hudson.model.Action;
+import hudson.model.Computer;
+import hudson.model.RootAction;
+import hudson.model.TransientComputerActionFactory;
+import jenkins.model.Jenkins;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /**
- * Blockage used when lenient shutdown mode is active.
+ * Registers computers for
+ * {@link com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownSlaveAction}s.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
-public class ShutdownBlockage extends CauseOfBlockage {
+@Extension
+public class ShutdownSlaveTransientActionProvider extends TransientComputerActionFactory {
 
     @Override
-    public String getShortDescription() {
-        return Messages.IsAboutToShutDown();
+    public Collection<? extends Action> createFor(Computer target) {
+        if (target instanceof Jenkins.MasterComputer) {
+            return Collections.emptyList();
+        } else {
+            final RootAction rootAction = new ShutdownSlaveAction(target);
+            return Collections.singletonList(rootAction);
+        }
     }
 
 }

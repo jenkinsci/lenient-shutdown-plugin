@@ -22,18 +22,43 @@
  *  THE SOFTWARE.
  */
 
+package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-style(type: "text/css", '''
-    #lenient-shutdown-msg {
-        font-weight: bold;
-        font-size: larger;
-        color: white;
-        background-color: #ef2929;
-        text-align: center;
-        padding: 0.5em;
+import hudson.Extension;
+import hudson.model.Computer;
+import hudson.model.TaskListener;
+import hudson.slaves.ComputerListener;
+
+/**
+ * Class for resetting lenient offline statuses when nodes come back online.
+ *
+ * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
+ */
+@Extension
+public class ShutdownSlaveResetter extends ComputerListener {
+
+    /**
+     * Makes sure the lenient offline status is being reset
+     * after a node is taken online again.
+     * @param computer the computer to reset status for
+     * @param listener task listener
+     */
+    @Override
+    public void onOnline(Computer computer, TaskListener listener) {
+        onTemporarilyOnline(computer);
     }
-''')
 
-if(it.goingToShutdown) {
-    div(id: "lenient-shutdown-msg", it.shutdownMessage)
+    /**
+     * Makes sure the lenient offline status is being reset
+     * after a node is taken temporarily online again.
+     * @param computer the computer to reset status for
+     */
+    @Override
+    public void onTemporarilyOnline(Computer computer) {
+        PluginImpl plugin = PluginImpl.getInstance();
+        if (plugin.isNodeShuttingDown(computer.getName())) {
+            plugin.toggleNodeShuttingDown(computer.getName());
+        }
+    }
+
 }

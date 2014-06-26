@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright 2014 Sony Mobile Communications AB. All rights reserved.
+ *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,6 @@ import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
 import org.junit.Rule;
 import org.junit.Test;
-
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.concurrent.TimeUnit;
@@ -50,11 +49,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Test class for Lenient shutdown mode.
+ * Test class for global lenient shutdown mode.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
-public class LenientShutdownTest {
+public class GlobalLenientShutdownTest {
 
     /**
      * Jenkins rule instance.
@@ -329,7 +328,6 @@ public class LenientShutdownTest {
         assertTrue(queueItem.isBlocked());
         assertEquals(Messages.IsAboutToShutDown(), queueItem.getWhy());
     }
-
 
     /**
      * Toggles the lenient shutdown mode using the plugin URL.

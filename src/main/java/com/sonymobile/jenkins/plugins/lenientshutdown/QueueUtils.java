@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright 2014 Sony Mobile Communications AB. All rights reserved.
+ *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,12 @@ import hudson.model.Queue;
 import jenkins.model.Jenkins;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static hudson.model.Queue.BuildableItem;
 
 /**
  * Utility class for getting information about the build queue and ongoing builds.
@@ -51,22 +54,33 @@ public final class QueueUtils {
     private QueueUtils() { }
 
     /**
-     * Returns the set of project names that are in the build queue
+     * Returns the set of all project names that are in the build queue
      * AND have a completed upstream project.
      * Note: This method locks the queue; don't use excessively.
-     * @return set of queued and allowed project names
+     * @return set of queued and permitted project names
      */
-    public static Set<String> getAllowedQueueProjectNames() {
+    public static Set<String> getPermittedQueueProjectNames() {
+        return getPermittedQueueProjectNames(null);
+    }
+
+    /**
+     * Returns the set of queued project names that are bound to a specific node
+     * AND have a completed upstream project.
+     * Note: This method locks the queue; don't use excessively.
+     * @param nodeName the node name to check projects for, null is interpreted as no restriction
+     * @return set of queued and permitted project names
+     */
+    public static Set<String> getPermittedQueueProjectNames(String nodeName) {
         Set<String> queuedProjects = new HashSet<String>();
         Queue queueInstance = Queue.getInstance();
-        for (int id : getAllowedQueueItemIds()) {
+        for (int id : getPermittedQueueItemIds(nodeName)) {
             Queue.Item item = queueInstance.getItem(id);
             if (item.task instanceof AbstractProject) {
                 AbstractProject project = (AbstractProject)item.task;
                 queuedProjects.add(project.getFullName());
             }
         }
-        return queuedProjects;
+        return Collections.unmodifiableSet(queuedProjects);
     }
 
     /**
@@ -75,7 +89,7 @@ public final class QueueUtils {
      * Note: This method locks the queue; don't use excessively.
      * @return set of item ids
      */
-    public static Set<Integer> getAllowedQueueItemIds() {
+    public static Set<Integer> getPermittedQueueItemIds() {
         Set<Integer> queuedIds = new HashSet<Integer>();
         for (Queue.Item item : Queue.getInstance().getItems()) {
             if (item.task instanceof AbstractProject) {
@@ -90,7 +104,39 @@ public final class QueueUtils {
                 queuedIds.add(item.id);
             }
         }
-        return queuedIds;
+        return Collections.unmodifiableSet(queuedIds);
+    }
+
+    /**
+     * Returns a set of queued item ids that are bound to a specific node
+     * and should be permitted to build since they have a completed upstream project.
+     * Note: This method locks the queue; don't use excessively.
+     * @param nodeName the node name to check allowed ids for
+     * @return set of permitted item ids
+     */
+    public static Set<Integer> getPermittedQueueItemIds(String nodeName) {
+        Set<Integer> permittedQueueItemIds = new HashSet<Integer>();
+        if (nodeName == null) {
+            permittedQueueItemIds.addAll(getPermittedQueueItemIds());
+        } else {
+            Queue queueInstance = Queue.getInstance();
+
+            Node node = Jenkins.getInstance().getNode(nodeName);
+            if (nodeName.isEmpty()) { //Special case when building on master
+                node = Jenkins.getInstance();
+            }
+
+            if (node != null) {
+                for (int id : getPermittedQueueItemIds()) {
+                    Queue.Item item = queueInstance.getItem(id);
+                    if (item != null && !canOtherNodeBuild(item, node)) {
+                        permittedQueueItemIds.add(id);
+                    }
+                }
+            }
+        }
+
+        return Collections.unmodifiableSet(permittedQueueItemIds);
     }
 
     /**
@@ -104,6 +150,25 @@ public final class QueueUtils {
         allNodes.add(Jenkins.getInstance());
 
         for (Node node : allNodes) {
+            runningProjects.addAll(getRunningProjectNames(node.getNodeName()));
+        }
+        return Collections.unmodifiableSet(runningProjects);
+    }
+
+    /**
+     * Returns the set of project names that have an ongoing build on a specific node.
+     * @param nodeName the node name to list running projects for
+     * @return set of running project names
+     */
+    public static Set<String> getRunningProjectNames(String nodeName) {
+        Set<String> runningProjects = new HashSet<String>();
+
+        Node node = Jenkins.getInstance().getNode(nodeName);
+        if (nodeName.isEmpty()) { //Special case when building on master
+            node = Jenkins.getInstance();
+        }
+
+        if (node != null) {
             Computer computer = node.toComputer();
             if (computer != null) {
                 List<Executor> executors = new ArrayList<Executor>(computer.getExecutors());
@@ -118,7 +183,8 @@ public final class QueueUtils {
                 }
             }
         }
-        return runningProjects;
+
+        return Collections.unmodifiableSet(runningProjects);
     }
 
     /**
@@ -134,7 +200,7 @@ public final class QueueUtils {
                 upstreamProjects.add(upstreamCause.getUpstreamProject());
             }
         }
-        return upstreamProjects;
+        return Collections.unmodifiableSet(upstreamProjects);
     }
 
     /**
@@ -158,7 +224,89 @@ public final class QueueUtils {
                 }
             }
         }
-        return upstreamBuilds;
+        return Collections.unmodifiableSet(upstreamBuilds);
     }
+
+    /**
+     * Checks if there are any online nodes other than the argument node
+     * that can build the item.
+     * @param item the item to build
+     * @param node the node to exclude in the search
+     * @return true if any other available nodes were found, otherwise false
+     */
+    public static boolean canOtherNodeBuild(Queue.Item item, Node node) {
+        boolean otherNodeCanBuild = false;
+
+        if (item instanceof BuildableItem) {
+            //Item is ready to build, we can make a full check if other slaves can build it.
+            BuildableItem buildableItem = (BuildableItem)item;
+            Set<Node> allNodes = new HashSet<Node>(Jenkins.getInstance().getNodes());
+            allNodes.add(Jenkins.getInstance());
+
+            for (Node otherNode : allNodes) {
+                Computer otherComputer = otherNode.toComputer();
+                if (otherComputer != null && otherComputer.isOnline() && !otherNode.equals(node)
+                        && otherNode.canTake(buildableItem) == null) {
+                    otherNodeCanBuild = true;
+                    break;
+                }
+            }
+        } else if (item instanceof Queue.WaitingItem) {
+            //Item is in quiet period. We can't make a full check if other nodes can build,
+            //instead we check if its upstream was built on the argument node and it that case
+            //return false.
+            otherNodeCanBuild = true;
+            for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
+                boolean isUpstreamFinished = !upstreamBuild.isBuilding();
+                if (isUpstreamFinished
+                        && upstreamBuild.getBuiltOnStr().equals(node.getNodeName())) {
+                    otherNodeCanBuild = false;
+                    break;
+                }
+            }
+        }
+        return otherNodeCanBuild;
+    }
+
+    /**
+     * Checks if argument computer is currently building something.
+     * @param computer the computer to check for
+     * @return true if computer is building, otherwise false
+     */
+    public static boolean isBuilding(Computer computer) {
+        boolean isBuilding = false;
+        List<Executor> executors = new ArrayList<Executor>(computer.getExecutors());
+        executors.addAll(computer.getOneOffExecutors());
+
+        for (Executor executor : executors) {
+            if (executor.isBusy()) {
+                isBuilding = true;
+                break;
+            }
+        }
+
+        return isBuilding;
+    }
+
+    /**
+     * Checks if there are any builds in queue that can only be built
+     * by the argument computer.
+     * Note: This method locks the queue; don't use excessively.
+     * @param computer the computer to check assignment for
+     * @return true if there are builds that can only be build by argument computer, otherwise false
+     */
+    public static boolean hasNodeExclusiveItemInQueue(Computer computer) {
+        boolean hasExclusive = false;
+        Queue.Item[] queueItems = Queue.getInstance().getItems();
+
+        for (Queue.Item item : queueItems) {
+            if (!canOtherNodeBuild(item, computer.getNode())) {
+                hasExclusive = true;
+                break;
+            }
+        }
+        return hasExclusive;
+    }
+
 
 }
