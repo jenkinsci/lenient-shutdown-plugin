@@ -25,7 +25,6 @@
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -33,18 +32,26 @@ import hudson.model.Queue;
 import hudson.model.Queue.Item;
 import hudson.model.Result;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig;
+import hudson.plugins.parameterizedtrigger.BlockingBehaviour;
+import hudson.plugins.parameterizedtrigger.BuildTriggerConfig;
+import hudson.plugins.parameterizedtrigger.NodeParameters;
+import hudson.plugins.parameterizedtrigger.ResultCondition;
+import hudson.plugins.parameterizedtrigger.TriggerBuilder;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -64,6 +71,19 @@ public class GlobalLenientShutdownTest {
 
     private static final int TIMEOUT_SECONDS = 60;
     private static final int QUIET_PERIOD = 15;
+    private static final int NUM_EXECUTORS = 4;
+
+    /**
+     * Changes the number of executors on the Jenkins master.
+     * Runs before every test.
+     * @throws IOException if something goes wrong
+     */
+    @Before
+    public void setUp() throws IOException {
+        Jenkins jenkins = jenkinsRule.getInstance();
+        jenkins.setNumExecutors(NUM_EXECUTORS);
+        jenkins.setNodes(jenkins.getNodes());
+    }
 
     /**
      * Tests that the URL for activating shutdown mode works as expected.
@@ -186,32 +206,75 @@ public class GlobalLenientShutdownTest {
 
         toggleLenientShutdown();
 
-        AbstractBuild parentBuild = null;
-        AbstractBuild childBuild = null;
-        AbstractBuild grandchildBuild = null;
+        assertSuccessfulBuilds(parent, child, grandChild);
+    }
 
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            parentBuild = parent.getBuildByNumber(1);
-            childBuild = child.getBuildByNumber(1);
-            grandchildBuild = parent.getBuildByNumber(1);
+    /**
+     * Tests that builds with white listed upstreams are allowed,
+     * even though lenient shutdown mode is active. The upstreams are defined
+     * with Parameterized Trigger Plugin.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testDoesNotBlockParameterizedPluginDownstream() throws Exception {
+        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
+        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
-            if (parentBuild != null && parentBuild.getResult() == Result.SUCCESS
-                    && childBuild != null && childBuild.getResult() == Result.SUCCESS
-                    && grandchildBuild != null && grandchildBuild.getResult() == Result.SUCCESS) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+        BuildTriggerConfig childTrigger = new BuildTriggerConfig(child.getName(),
+                ResultCondition.ALWAYS, new NodeParameters());
+        BuildTriggerConfig grandChildTrigger = new BuildTriggerConfig(grandChild.getName(),
+                ResultCondition.ALWAYS, new NodeParameters());
 
-        assertNotNull(parentBuild);
-        assertNotNull(childBuild);
-        assertNotNull(grandchildBuild);
+        parent.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(childTrigger));
+        child.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(grandChildTrigger));
+        Jenkins.getInstance().rebuildDependencyGraph();
 
-        assertEquals(Result.SUCCESS, parentBuild.getResult());
-        assertEquals(Result.SUCCESS, childBuild.getResult());
-        assertEquals(Result.SUCCESS, grandchildBuild.getResult());
+        // Gives lenient shutdown mode time to activate while parent is still building:
+        parent.getBuildersList().add(new Shell("sleep 5"));
+
+        //Trigger build of the first project, which starts the chain:
+        parent.scheduleBuild2(0).waitForStart();
+
+        toggleLenientShutdown();
+
+        assertSuccessfulBuilds(parent, child, grandChild);
+    }
+
+    /**
+     * Tests that downstream triggers that have been added as build steps in
+     * Parameterized Trigger Plugin are allowed to finish when lenient shutdown
+     * is activated during build.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testParameterizedPluginBuildStep() throws Exception {
+        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
+        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+
+        // Gives lenient shutdown mode time to activate while parent is still building:
+        parent.getBuildersList().add(new Shell("sleep 5"));
+
+        BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
+                Result.FAILURE, Result.FAILURE, Result.UNSTABLE);
+
+        BlockableBuildTriggerConfig childTrigger = new BlockableBuildTriggerConfig(child.getName(),
+                waitForDownstreamBehavior, null);
+        BlockableBuildTriggerConfig grandChildTrigger = new BlockableBuildTriggerConfig(grandChild.getName(),
+                waitForDownstreamBehavior, null);
+
+        parent.getBuildersList().add(new TriggerBuilder(childTrigger));
+        child.getBuildersList().add(new TriggerBuilder(grandChildTrigger));
+
+        Jenkins.getInstance().rebuildDependencyGraph();
+
+        //Trigger build of the first project, which starts the chain:
+        parent.scheduleBuild2(0).waitForStart();
+
+        toggleLenientShutdown();
+
+        assertSuccessfulBuilds(parent, child, grandChild);
     }
 
     /**
@@ -259,32 +322,7 @@ public class GlobalLenientShutdownTest {
 
         toggleLenientShutdown();
 
-        AbstractBuild parentBuild = null;
-        AbstractBuild childBuild = null;
-        AbstractBuild grandchildBuild = null;
-
-        elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            parentBuild = parent.getBuildByNumber(1);
-            childBuild = child.getBuildByNumber(1);
-            grandchildBuild = parent.getBuildByNumber(1);
-
-            if (parentBuild != null && parentBuild.getResult() == Result.SUCCESS
-                    && childBuild != null && childBuild.getResult() == Result.SUCCESS
-                    && grandchildBuild != null && grandchildBuild.getResult() == Result.SUCCESS) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-
-        assertNotNull(parentBuild);
-        assertNotNull(childBuild);
-        assertNotNull(grandchildBuild);
-
-        assertEquals(Result.SUCCESS, parentBuild.getResult());
-        assertEquals(Result.SUCCESS, childBuild.getResult());
-        assertEquals(Result.SUCCESS, grandchildBuild.getResult());
+        assertSuccessfulBuilds(parent, child, grandChild);
     }
 
     /**
@@ -336,5 +374,6 @@ public class GlobalLenientShutdownTest {
     private void toggleLenientShutdown() throws Exception {
         jenkinsRule.createWebClient().goTo(ShutdownManageLink.getInstance().getUrlName());
     }
+
 
 }

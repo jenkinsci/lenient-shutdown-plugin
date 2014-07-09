@@ -24,13 +24,15 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-import hudson.model.AbstractBuild;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig;
+import hudson.plugins.parameterizedtrigger.BlockingBehaviour;
+import hudson.plugins.parameterizedtrigger.TriggerBuilder;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Shell;
@@ -42,6 +44,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 import static junit.framework.TestCase.assertNotNull;
@@ -172,35 +176,10 @@ public class SlaveLenientOfflineTest {
             expectedNextBuildingOn = slave0;
         }
 
-        AbstractBuild parentBuild = null;
-        AbstractBuild childBuild = null;
-        AbstractBuild grandchildBuild = null;
+        assertSuccessfulBuilds(parent, child, grandChild);
 
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            parentBuild = parent.getBuildByNumber(1);
-            childBuild = child.getBuildByNumber(1);
-            grandchildBuild = grandChild.getBuildByNumber(1);
-
-            if (parentBuild != null && parentBuild.getResult() == Result.SUCCESS
-                    && childBuild != null && childBuild.getResult() == Result.SUCCESS
-                    && grandchildBuild != null && grandchildBuild.getResult() == Result.SUCCESS) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-
-        assertNotNull(parentBuild);
-        assertNotNull(childBuild);
-        assertNotNull(grandchildBuild);
-
-        assertEquals(Result.SUCCESS, parentBuild.getResult());
-        assertEquals(Result.SUCCESS, childBuild.getResult());
-        assertEquals(Result.SUCCESS, grandchildBuild.getResult());
-
-        assertEquals(expectedNextBuildingOn.getNodeName(), childBuild.getBuiltOnStr());
-        assertEquals(expectedNextBuildingOn.getNodeName(), grandchildBuild.getBuiltOnStr());
+        assertEquals(expectedNextBuildingOn.getNodeName(), child.getBuildByNumber(1).getBuiltOnStr());
+        assertEquals(expectedNextBuildingOn.getNodeName(), grandChild.getBuildByNumber(1).getBuiltOnStr());
     }
 
     /**
@@ -226,37 +205,8 @@ public class SlaveLenientOfflineTest {
         parent.scheduleBuild2(0).waitForStart();
         toggleLenientSlaveOffline(slave1);
 
-
-        AbstractBuild parentBuild = null;
-        AbstractBuild childBuild = null;
-        AbstractBuild grandchildBuild = null;
-
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            parentBuild = parent.getBuildByNumber(1);
-            childBuild = child.getBuildByNumber(1);
-            grandchildBuild = grandChild.getBuildByNumber(1);
-
-            if (parentBuild != null && parentBuild.getResult() == Result.SUCCESS
-                    && childBuild != null && childBuild.getResult() == Result.SUCCESS
-                    && grandchildBuild != null && grandchildBuild.getResult() == Result.SUCCESS
-                    && slave1.getComputer().isTemporarilyOffline()) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-
-        assertNotNull(parentBuild);
-        assertNotNull(childBuild);
-        assertNotNull(grandchildBuild);
-
-        assertEquals(Result.SUCCESS, parentBuild.getResult());
-        assertEquals(Result.SUCCESS, childBuild.getResult());
-        assertEquals(Result.SUCCESS, grandchildBuild.getResult());
-
-        assertTrue("Slave1 should shut down after builds are complete",
-                slave1.toComputer().isTemporarilyOffline());
+        assertSuccessfulBuilds(parent, child, grandChild);
+        assertSlaveGoesOffline(slave1);
     }
 
     /**
@@ -284,27 +234,7 @@ public class SlaveLenientOfflineTest {
         //Now reactivate the slave
         toggleLenientSlaveOffline(slave0);
 
-        AbstractBuild parentBuild = null;
-        AbstractBuild childBuild = null;
-
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            parentBuild = parent.getBuildByNumber(1);
-            childBuild = child.getBuildByNumber(1);
-
-            if (parentBuild != null && parentBuild.getResult() == Result.SUCCESS
-                    && childBuild != null && childBuild.getResult() == Result.SUCCESS) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-
-        assertNotNull(parentBuild);
-        assertNotNull(childBuild);
-
-        assertEquals(Result.SUCCESS, parentBuild.getResult());
-        assertEquals(Result.SUCCESS, childBuild.getResult());
+        assertSuccessfulBuilds(parent, child);
     }
 
     /**
@@ -321,6 +251,49 @@ public class SlaveLenientOfflineTest {
         assertFalse(plugin.isNodeShuttingDown(slave0.getNodeName()));
     }
 
+    /**
+     * Tests that build steps set up with Parameterized Trigger Plugin are
+     * allowed to finish when a slave is taken temp. offline leniently.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testParameterizedBuildTrigger() throws Exception {
+        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
+        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+
+        // Gives lenient shutdown mode time to activate while parent is still building:
+        parent.getBuildersList().add(new Shell("sleep 5"));
+
+        BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
+                Result.FAILURE, Result.FAILURE, Result.UNSTABLE);
+
+        BlockableBuildTriggerConfig childTrigger = new BlockableBuildTriggerConfig(child.getName(),
+                waitForDownstreamBehavior, null);
+
+        parent.getBuildersList().add(new TriggerBuilder(childTrigger));
+        Jenkins.getInstance().rebuildDependencyGraph();
+
+        parent.scheduleBuild2(0).waitForStart();
+        TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a slave (not the master).
+
+        Node buildingOn = parent.getLastBuiltOn();
+        if (buildingOn == null || buildingOn == Jenkins.getInstance()) {
+            fail("Project was not built correctly");
+        }
+
+        toggleLenientSlaveOffline(buildingOn);
+
+        Node expectedNextBuildingOn = null;
+        if (buildingOn.equals(slave0)) {
+            expectedNextBuildingOn = slave1;
+        } else if (buildingOn.equals(slave1)) {
+            expectedNextBuildingOn = slave0;
+        }
+
+        assertSuccessfulBuilds(parent, child);
+        assertEquals(expectedNextBuildingOn.getNodeName(), child.getBuildByNumber(1).getBuiltOnStr());
+        assertSlaveGoesOffline((DumbSlave)buildingOn);
+    }
 
     /**
      * Toggles the lenient offline mode for a specific slave.

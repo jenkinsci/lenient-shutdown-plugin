@@ -28,9 +28,9 @@ import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.ManagementLink;
-import org.apache.commons.collections.CollectionUtils;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
+import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
