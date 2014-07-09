@@ -163,6 +163,14 @@ public class ShutdownManageLink extends ManagementLink  {
     public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
         Jenkins.getInstance().checkPermission(getRequiredPermission());
 
+        performToggleGoingToShutdown();
+        rsp.sendRedirect2(req.getContextPath() + "/manage");
+    }
+
+    /**
+     * Toggles the flag and prepares for lenient shutdown if needed.
+     */
+    public void performToggleGoingToShutdown() {
         toggleGoingToShutdown();
         if (isGoingToShutdown()) {
             ExecutorService service = Executors.newSingleThreadExecutor();
@@ -178,7 +186,6 @@ public class ShutdownManageLink extends ManagementLink  {
                 }
             });
         }
-        rsp.sendRedirect2(req.getContextPath() + "/manage");
     }
 
     /**

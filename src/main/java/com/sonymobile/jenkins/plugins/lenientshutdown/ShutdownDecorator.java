@@ -25,7 +25,9 @@
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.PageDecorator;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -66,6 +68,14 @@ public class ShutdownDecorator extends PageDecorator {
     }
 
     /**
+     * Sets the shutdown message to be displayed in header.
+     * @param shutdownMessage message to display in header
+     */
+    public void setShutdownMessage(String shutdownMessage) {
+        this.shutdownMessage = shutdownMessage;
+    }
+
+    /**
      * Called when an admin saves settings in the global configuration page.
      * Persists the current settings to disk.
      * @param staplerRequest the request
@@ -80,5 +90,17 @@ public class ShutdownDecorator extends PageDecorator {
         return true;
     }
 
-
+    /**
+     * The singleton instance registered in the Jenkins extension list.
+     *
+     * @return the instance.
+     */
+    public static ShutdownDecorator getInstance() {
+        ExtensionList<ShutdownDecorator> list = Jenkins.getInstance().getExtensionList(ShutdownDecorator.class);
+        if (!list.isEmpty()) {
+            return list.get(0);
+        } else {
+            throw new IllegalStateException("Extensions are not loaded yet.");
+        }
+    }
 }
