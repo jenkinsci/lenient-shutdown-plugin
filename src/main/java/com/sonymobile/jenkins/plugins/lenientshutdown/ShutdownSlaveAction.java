@@ -28,9 +28,7 @@ import hudson.Functions;
 import hudson.model.Computer;
 import hudson.model.RootAction;
 import hudson.model.User;
-import hudson.security.Permission;
 import hudson.util.HttpResponses;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.HttpResponse;
 
 import java.io.IOException;
@@ -75,14 +73,11 @@ public class ShutdownSlaveAction implements RootAction {
     public String getIconFileName() {
         String icon = null;
 
-        User currentUser = User.current();
-
-        if (computer != null && !computer.isTemporarilyOffline()
-                && currentUser != null && currentUser.hasPermission(getRequiredPermission())) {
+        if (computer != null && !computer.isTemporarilyOffline()) {
             PluginImpl plugin = PluginImpl.getInstance();
-            if (plugin.isNodeShuttingDown(computer.getName())) {
+            if (plugin.isNodeShuttingDown(computer.getName()) && computer.hasPermission(Computer.CONNECT)) {
                 icon =  DISABLE_ICON;
-            } else {
+            } else if (computer.hasPermission(Computer.DISCONNECT)) {
                 icon = Functions.getResourcePath() + "/plugin/" + getUrlName() + ENABLE_ICON;
             }
         }
@@ -92,10 +87,12 @@ public class ShutdownSlaveAction implements RootAction {
     @Override
     public String getDisplayName() {
         PluginImpl plugin = PluginImpl.getInstance();
-        if (plugin.isNodeShuttingDown(computer.getName())) {
+        if (plugin.isNodeShuttingDown(computer.getName()) && computer.hasPermission(Computer.CONNECT)) {
             return Messages.CancelOfflineLeniently();
+        } else if (computer.hasPermission(Computer.DISCONNECT)) {
+            return Messages.TakeOfflineLeniently();
         }
-        return Messages.TakeOfflineLeniently();
+        return null;
     }
 
     @Override
@@ -109,14 +106,14 @@ public class ShutdownSlaveAction implements RootAction {
      * @throws IOException if something goes wrong
      */
     public HttpResponse doIndex() throws IOException {
-        Jenkins.getInstance().checkPermission(getRequiredPermission());
-
         final PluginImpl plugin = PluginImpl.getInstance();
         final String nodeName = computer.getName();
 
         if (plugin.isNodeShuttingDown(nodeName)) {
+            computer.checkPermission(Computer.CONNECT);
             plugin.toggleNodeShuttingDown(nodeName);
         } else {
+            computer.checkPermission(Computer.DISCONNECT);
             if (QueueUtils.isBuilding(computer) || QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
                 //Doing some work; we want to take offline leniently
                 plugin.toggleNodeShuttingDown(nodeName);
@@ -148,13 +145,4 @@ public class ShutdownSlaveAction implements RootAction {
 
         return HttpResponses.redirectTo("../");
     }
-
-    /**
-     * Returns required permission to change lenient disconnect mode for slaves.
-     * @return Jenkins administer permission.
-     */
-    public Permission getRequiredPermission() {
-        return Jenkins.ADMINISTER;
-    }
-
 }
