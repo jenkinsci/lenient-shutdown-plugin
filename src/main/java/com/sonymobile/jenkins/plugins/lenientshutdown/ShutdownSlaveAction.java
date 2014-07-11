@@ -27,14 +27,10 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 import hudson.Functions;
 import hudson.model.Computer;
 import hudson.model.RootAction;
-import hudson.model.User;
 import hudson.util.HttpResponses;
 import org.kohsuke.stapler.HttpResponse;
 
 import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Action to be displayed on computer pages for turning slaves
@@ -114,35 +110,11 @@ public class ShutdownSlaveAction implements RootAction {
             plugin.toggleNodeShuttingDown(nodeName);
         } else {
             computer.checkPermission(Computer.DISCONNECT);
-            if (QueueUtils.isBuilding(computer) || QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
-                //Doing some work; we want to take offline leniently
-                plugin.toggleNodeShuttingDown(nodeName);
-                plugin.setOfflineByUser(nodeName, User.current());
-
-                ExecutorService service = Executors.newSingleThreadExecutor();
-                service.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        Set<String> permittedUpstreamProjectNames = plugin.getPermittedUpstreamProjects(nodeName);
-                        permittedUpstreamProjectNames.clear();
-                        permittedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames(nodeName));
-                        permittedUpstreamProjectNames.addAll(QueueUtils.getPermittedQueueProjectNames(nodeName));
-
-                        Set<Integer> alreadyQueuedItemIds = plugin.getAlreadyQueuedItemIds(nodeName);
-                        alreadyQueuedItemIds.clear();
-                        alreadyQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds(nodeName));
-                    }
-                });
-
-            } else { //No builds; we can take offline directly
-                User currentUser = User.current();
-                if (currentUser == null) {
-                    currentUser = User.getUnknown();
-                }
-                computer.setTemporarilyOffline(true, new LenientOfflineCause(currentUser));
-            }
+            PluginImpl.getInstance().setNodeOffline(computer);
         }
 
         return HttpResponses.redirectTo("../");
     }
+
+
 }

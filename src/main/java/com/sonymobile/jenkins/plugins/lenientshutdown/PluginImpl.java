@@ -27,6 +27,8 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import hudson.Plugin;
 import hudson.model.AbstractProject;
+import hudson.model.Computer;
+import hudson.model.Node;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
@@ -38,6 +40,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Plugin base class.
@@ -97,6 +101,50 @@ public class PluginImpl extends Plugin {
             lenientOfflineSlaves.put(nodeName, true);
         } else {
             lenientOfflineSlaves.put(nodeName, !nodeShuttingDown);
+        }
+    }
+
+    /**
+     * Actually sets the node offline or prepares it to be leniently and then later offline.
+     *
+     * @param computer the computer.
+     */
+    public void setNodeOffline(final Computer computer) {
+        if (computer == null) {
+            return;
+        }
+        final Node node = computer.getNode();
+        if (node == null) {
+            return;
+        }
+        if (QueueUtils.isBuilding(computer) || QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
+            //Doing some work; we want to take offline leniently
+            final String nodeName = node.getNodeName();
+            toggleNodeShuttingDown(nodeName);
+            setOfflineByUser(nodeName, User.current());
+
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.submit(new Runnable() {
+                @Override
+                public void run() {
+                    final String nodeName = node.getNodeName();
+                    Set<String> permittedUpstreamProjectNames = getPermittedUpstreamProjects(nodeName);
+                    permittedUpstreamProjectNames.clear();
+                    permittedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames(nodeName));
+                    permittedUpstreamProjectNames.addAll(QueueUtils.getPermittedQueueProjectNames(nodeName));
+
+                    Set<Integer> alreadyQueuedItemIds = getAlreadyQueuedItemIds(nodeName);
+                    alreadyQueuedItemIds.clear();
+                    alreadyQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds(nodeName));
+                }
+            });
+
+        } else { //No builds; we can take offline directly
+            User currentUser = User.current();
+            if (currentUser == null) {
+                currentUser = User.getUnknown();
+            }
+            computer.setTemporarilyOffline(true, new LenientOfflineCause(currentUser));
         }
     }
 
