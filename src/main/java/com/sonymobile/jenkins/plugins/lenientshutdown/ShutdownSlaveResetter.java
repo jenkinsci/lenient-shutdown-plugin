@@ -56,7 +56,7 @@ public class ShutdownSlaveResetter extends ComputerListener {
     @Override
     public void onTemporarilyOnline(Computer computer) {
         PluginImpl plugin = PluginImpl.getInstance();
-        if (plugin.isNodeShuttingDown(computer.getName())) {
+        if (plugin != null && plugin.isNodeShuttingDown(computer.getName())) {
             plugin.toggleNodeShuttingDown(computer.getName());
         }
     }
