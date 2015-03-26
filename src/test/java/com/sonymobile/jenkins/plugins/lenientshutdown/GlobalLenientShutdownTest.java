@@ -82,7 +82,8 @@ public class GlobalLenientShutdownTest {
     public void setUp() throws IOException {
         Jenkins jenkins = jenkinsRule.getInstance();
         jenkins.setNumExecutors(NUM_EXECUTORS);
-        jenkins.setNodes(jenkins.getNodes()); // TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
+        //TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
+        jenkins.setNodes(jenkins.getNodes());
     }
 
     /**
