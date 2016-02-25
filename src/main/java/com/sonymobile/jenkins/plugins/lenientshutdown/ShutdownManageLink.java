@@ -112,7 +112,7 @@ public class ShutdownManageLink extends ManagementLink  {
      */
     @Override
     public String getUrlName() {
-        return URL;
+        return isGoingToShutdown ? "cancelLenientShutdown" : URL;
     }
 
     /**
@@ -152,19 +152,24 @@ public class ShutdownManageLink extends ManagementLink  {
     public boolean isGoingToShutdown() {
         return isGoingToShutdown;
     }
+    
+    public ShutdownConfiguration getConfiguration()
+    {
+      return ShutdownConfiguration.getInstance();
+    }
 
-    /**
-     * Method triggered when pressing the management link.
-     * Toggles the lenient shutdown mode.
-     * @param req StaplerRequest
-     * @param rsp StaplerResponse
-     * @throws IOException if unable to redirect
-     */
-    public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
-        Jenkins.getInstance().checkPermission(getRequiredPermission());
+    public synchronized void doCancelLenientShutdown(StaplerRequest req, StaplerResponse rsp) throws IOException {
+      Jenkins.getInstance().checkPermission(getRequiredPermission());
+      
+      performToggleGoingToShutdown();
+      rsp.sendRedirect2(req.getContextPath() + "/manage");
+    }
 
-        performToggleGoingToShutdown();
-        rsp.sendRedirect2(req.getContextPath() + "/manage");
+    public synchronized void doLenientShutdown(StaplerRequest req, StaplerResponse rsp) throws IOException {
+      Jenkins.getInstance().checkPermission(getRequiredPermission());
+      
+      performToggleGoingToShutdown();
+      rsp.sendRedirect2(req.getContextPath() + "/manage");
     }
 
     /**

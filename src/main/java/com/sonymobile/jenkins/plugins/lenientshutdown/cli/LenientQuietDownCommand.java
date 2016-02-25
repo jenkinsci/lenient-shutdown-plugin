@@ -23,6 +23,7 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownConfiguration;
 import com.sonymobile.jenkins.plugins.lenientshutdown.Messages;
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator;
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
@@ -63,9 +64,9 @@ public class LenientQuietDownCommand extends CLICommand {
         if (!management.isGoingToShutdown()) {
             management.performToggleGoingToShutdown();
             if (Util.fixEmpty(message) != null) {
-                ShutdownDecorator decorator = ShutdownDecorator.getInstance();
-                decorator.setShutdownMessage(message);
-                decorator.save();
+                ShutdownConfiguration config = ShutdownConfiguration.getInstance();
+                config.setShutdownMessage(message);
+                config.save();
             }
             stdout.println(Messages.IsAboutToShutDown());
             return 0;

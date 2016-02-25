@@ -23,6 +23,7 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownConfiguration;
 import com.sonymobile.jenkins.plugins.lenientshutdown.Messages;
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator;
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
@@ -50,6 +51,7 @@ public class ToggleLenientQuietDownCommand extends CLICommand {
             usage = "The system message to display on every page.", required = false)
     public String message;
 
+
     @Override
     public String getShortDescription() {
         ShutdownManageLink management = ShutdownManageLink.getInstance();
@@ -67,9 +69,9 @@ public class ToggleLenientQuietDownCommand extends CLICommand {
         management.performToggleGoingToShutdown();
 
         if (Util.fixEmpty(message) != null) {
-            ShutdownDecorator decorator = ShutdownDecorator.getInstance();
-            decorator.setShutdownMessage(message);
-            decorator.save();
+          ShutdownConfiguration config = ShutdownConfiguration.getInstance();
+          config.setShutdownMessage(message);
+          config.save();
         }
 
         if (management.isGoingToShutdown()) {

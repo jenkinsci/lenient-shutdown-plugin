@@ -40,18 +40,6 @@ import org.kohsuke.stapler.StaplerRequest;
 public class ShutdownDecorator extends PageDecorator {
 
     /**
-     * Defines the default shutdown message to be displayed in header.
-     */
-    private String shutdownMessage = Messages.GoingToShutDown();
-
-    /**
-     * Constructor, loads persisted configuration.
-     */
-    public ShutdownDecorator() {
-        load();
-    }
-
-    /**
      * Checks if Jenkins has been put to lenient shutdown mode.
      * @return true if Jenkins is in lenient shutdown mode, otherwise false
      */
@@ -59,37 +47,10 @@ public class ShutdownDecorator extends PageDecorator {
         return ShutdownManageLink.getInstance().isGoingToShutdown();
     }
 
-    /**
-     * Gets the shutdown message to be displayed in header.
-     * @return message to display in header
-     */
-    public String getShutdownMessage() {
-        return shutdownMessage;
+    public String getShutdownMessage()
+    {
+      return ShutdownConfiguration.getInstance().getShutdownMessage();
     }
-
-    /**
-     * Sets the shutdown message to be displayed in header.
-     * @param shutdownMessage message to display in header
-     */
-    public void setShutdownMessage(String shutdownMessage) {
-        this.shutdownMessage = shutdownMessage;
-    }
-
-    /**
-     * Called when an admin saves settings in the global configuration page.
-     * Persists the current settings to disk.
-     * @param staplerRequest the request
-     * @param json form data
-     * @return always true
-     * @throws FormException if the form was malformed
-     */
-    @Override
-    public boolean configure(StaplerRequest staplerRequest, JSONObject json) throws FormException {
-        shutdownMessage = json.getString("shutdownMessage");
-        save();
-        return true;
-    }
-
     /**
      * The singleton instance registered in the Jenkins extension list.
      *
