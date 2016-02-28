@@ -328,7 +328,7 @@ public class GlobalLenientShutdownTest {
 
     /**
      * Tests that projects that are in queue when lenient shutdown is enabled
-     * are blocked if they don't have an upstream project.
+     * are blocked if they don't have an upstream project and allow all queued items was not set
      * @throws Exception if something goes wrong
      */
     @Test
@@ -369,11 +369,42 @@ public class GlobalLenientShutdownTest {
     }
 
     /**
+     * Tests that projects that are in queue when lenient shutdown is enabled
+     * are not blocked if they don't have an upstream project and allow all queued items was set
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testDoesntBlockQueuedWithoutUpstreamWehnAllowAllQueuedEnabled() throws Exception {
+        Queue queue = Queue.getInstance();
+
+        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+        project.scheduleBuild2(QUIET_PERIOD);
+
+        //Wait for the project to queue up (in quiet period)
+        int elapsedSeconds = 0;
+        while (elapsedSeconds <= TIMEOUT_SECONDS) {
+            if (queue.getItems().length > 0) {
+                break;
+            }
+            TimeUnit.SECONDS.sleep(1);
+            elapsedSeconds++;
+        }
+        if (elapsedSeconds >= TIMEOUT_SECONDS) {
+            fail("Project was not queued up within time limit");
+        }
+
+        ShutdownManageLink.getInstance().getConfiguration().setAllowAllQueuedItems(true);
+        toggleLenientShutdown();
+
+        assertSuccessfulBuilds(project);    
+    }
+
+    /**
      * Toggles the lenient shutdown mode using the plugin URL.
      * @throws Exception if something goes wrong
      */
     private void toggleLenientShutdown() throws Exception {
-        jenkinsRule.createWebClient().goTo(ShutdownManageLink.getInstance().getUrlName());
+        ShutdownManageLink.getInstance().performToggleGoingToShutdown();
     }
 
 
