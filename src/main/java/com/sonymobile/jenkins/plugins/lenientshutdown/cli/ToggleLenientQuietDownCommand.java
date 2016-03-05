@@ -23,15 +23,11 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownConfiguration;
 import com.sonymobile.jenkins.plugins.lenientshutdown.Messages;
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator;
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
+
 import hudson.Extension;
-import hudson.Util;
-import hudson.cli.CLICommand;
 import jenkins.model.Jenkins;
-import org.kohsuke.args4j.Option;
 
 /**
  * Cli command <code>toggle-lenient-quiet-down</code>.
@@ -40,17 +36,7 @@ import org.kohsuke.args4j.Option;
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
 @Extension
-public class ToggleLenientQuietDownCommand extends CLICommand {
-
-    //CS IGNORE VisibilityModifier FOR NEXT 7 LINES. REASON: How it's meant to be done
-    /**
-     * The system message to show on every page.
-     * @see com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator
-     */
-    @Option(name = "-m", aliases = {"--message" },
-            usage = "The system message to display on every page.", required = false)
-    public String message;
-
+public class ToggleLenientQuietDownCommand extends LenientQuietDownCommandBase {
 
     @Override
     public String getShortDescription() {
@@ -68,14 +54,11 @@ public class ToggleLenientQuietDownCommand extends CLICommand {
 
         management.performToggleGoingToShutdown();
 
-        if (Util.fixEmpty(message) != null) {
-          ShutdownConfiguration config = ShutdownConfiguration.getInstance();
-          config.setShutdownMessage(message);
-          config.save();
-        }
+        configure();
 
         if (management.isGoingToShutdown()) {
             stdout.println(Messages.IsAboutToShutDown());
+            printStatus();
         } else {
             stdout.println(Messages.ShutDownCanceled());
         }

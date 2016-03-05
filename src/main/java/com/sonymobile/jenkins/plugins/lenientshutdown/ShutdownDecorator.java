@@ -28,8 +28,6 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.PageDecorator;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Adds a header about the lenient shutdown mode when it's active.
@@ -41,16 +39,22 @@ public class ShutdownDecorator extends PageDecorator {
 
     /**
      * Checks if Jenkins has been put to lenient shutdown mode.
+     *
      * @return true if Jenkins is in lenient shutdown mode, otherwise false
      */
     public boolean isGoingToShutdown() {
         return ShutdownManageLink.getInstance().isGoingToShutdown();
     }
 
-    public String getShutdownMessage()
-    {
-      return ShutdownConfiguration.getInstance().getShutdownMessage();
+    /**
+     * Gets the shutdown message to be displayed in header.
+     *
+     * @return message to display in header
+     */
+    public String getShutdownMessage() {
+        return ShutdownConfiguration.getInstance().getShutdownMessage();
     }
+
     /**
      * The singleton instance registered in the Jenkins extension list.
      *

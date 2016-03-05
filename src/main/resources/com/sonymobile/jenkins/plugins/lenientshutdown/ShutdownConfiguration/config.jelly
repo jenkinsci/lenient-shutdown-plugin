@@ -26,13 +26,17 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:section title="Lenient Shutdown Configuration">
 
-    <f:entry title="Shutdown message"
-            description="This message will be displayed in the header on all pages when lenient shutdown mode is activated" field="shutdownMessage">
+    <f:entry title="Shutdown message">
         <f:textbox/>
     </f:entry>
     
-    <f:entry title="Allow all queued items and white listed projects"
+    <f:entry title="Allow all queued items"
     		field="allowAllQueuedItems">
+    	<f:checkbox/>
+    </f:entry>
+
+    <f:entry title="Allow white listed projects"
+    		field="allowWhiteListedProjects">
     	<f:checkbox/>
     </f:entry>
 

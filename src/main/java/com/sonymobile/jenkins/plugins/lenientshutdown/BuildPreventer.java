@@ -23,19 +23,19 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.sonymobile.jenkins.plugins.lenientshutdown.blockcauses.GlobalShutdownBlockage;
 import com.sonymobile.jenkins.plugins.lenientshutdown.blockcauses.NodeShutdownBlockage;
+
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
-
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 
 /**
  * Prevents builds from running when lenient shutdown mode is active.
@@ -49,46 +49,68 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
     /**
      * Handles prevention of builds for lenient shutdown on the Jenkins master.
-     * @param item QueueItem to build
+     *
+     * @param item
+     *            QueueItem to build
      * @return CauseOfBlockage if a build is prevented, otherwise null
      */
     @Override
     public CauseOfBlockage canRun(Queue.Item item) {
-        CauseOfBlockage blockage = null; //Allow to run by default
+        CauseOfBlockage blockage = null; // Allow to run by default
 
         ShutdownManageLink shutdownManageLink = ShutdownManageLink.getInstance();
         boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
+        ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
+        boolean isWhitelistedProject = false;
 
         if (isGoingToShutdown
                 && item.task instanceof AbstractProject
-                && !shutdownManageLink.wasAlreadyQueued(item.id)) {
-            Set<String> upstreamProjects = QueueUtils.getUpstreamProjectNames(item);
+                && !shutdownManageLink.isPermittedQueueId(item.getId())) {
+            AbstractProject project = (AbstractProject)item.task;
+            isWhitelistedProject = shutdownManageLink.isActiveQueueIds()
+                    && configuration.isWhiteListedProject(project.getFullName());
 
-            if (!shutdownManageLink.isAnyPermittedUpstreamProject(upstreamProjects)) {
+            Set<Long> upstreamQueueIds = QueueUtils.getUpstreamQueueIds(item);
+            boolean isPermittedByUpStream = shutdownManageLink.isAnyPermittedUpstreamProject(upstreamQueueIds);
+            boolean isWhiteListedUpStreamProject = shutdownManageLink.isAnyWhiteListedUpstreamProject(upstreamQueueIds);
+
+            if (!isPermittedByUpStream && !isWhitelistedProject && !isWhiteListedUpStreamProject) {
                 logger.log(Level.FINE, "Preventing project {0} from running, "
-                        + "since lenient shutdown is active", item.getDisplayName());
+                        + "since lenient shutdown is active", project.getFullName());
                 blockage = new GlobalShutdownBlockage();
+            } else {
+                if (isPermittedByUpStream) {
+                    isWhitelistedProject = false;
+                }
             }
         }
 
-        //Set the project as allowed upstream project if it was not blocked and shutdown enabled:
+        // Set the project as allowed upstream project if it was not blocked and shutdown enabled:
         if (blockage == null && isGoingToShutdown) {
-            AbstractProject project = (AbstractProject)item.task;
-            shutdownManageLink.addPermittedUpstreamProject(project);
+            if (isWhitelistedProject) {
+                shutdownManageLink.addWhiteListedQueueId(item.getId());
+            } else {
+                shutdownManageLink.addPermittedUpstreamQueueId(item.getId());
+                shutdownManageLink.addActiveQueueId(item.getId());
+            }
         }
 
         return blockage;
     }
 
     /**
-     * Handles prevention of builds specific for a node when taking specific nodes offline leniently.
-     * @param node the node to check prevention for
-     * @param item the buildable item to check prevention for
+     * Handles prevention of builds specific for a node when taking specific nodes offline
+     * leniently.
+     *
+     * @param node
+     *            the node to check prevention for
+     * @param item
+     *            the buildable item to check prevention for
      * @return CauseOfBlockage if a build is prevented, otherwise null
      */
     @Override
     public CauseOfBlockage canTake(Node node, Queue.BuildableItem item) {
-        CauseOfBlockage blockage = null; //Allow to run by default
+        CauseOfBlockage blockage = null; // Allow to run by default
 
         PluginImpl plugin = PluginImpl.getInstance();
         String nodeName = node.getNodeName();
@@ -96,23 +118,23 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
         if (nodeIsGoingToShutdown
                 && item.task instanceof AbstractProject
-                && !plugin.wasAlreadyQueued(item.id, nodeName)) {
+                && !plugin.wasAlreadyQueued(item.getId(), nodeName)) {
 
             boolean otherNodeCanBuild = QueueUtils.canOtherNodeBuild(item, node);
-            Set<String> upstreamProjects = QueueUtils.getUpstreamProjectNames(item);
+            Set<Long> upstreamQueueIds = QueueUtils.getUpstreamQueueIds(item);
 
             if (otherNodeCanBuild
-                    || (!otherNodeCanBuild && !plugin.isAnyPermittedUpstreamProject(upstreamProjects, nodeName))) {
+                    || (!otherNodeCanBuild && !plugin.isAnyPermittedUpstreamQueueId(upstreamQueueIds, nodeName))) {
                 logger.log(Level.FINE, "Preventing project {0} from running on node {1}, "
-                        + "since lenient shutdown is active", new String[] {item.getDisplayName(), nodeName});
+                        + "since lenient shutdown is active", new String[] { item.getDisplayName(), nodeName });
                 blockage = new NodeShutdownBlockage();
             }
         }
 
-        //Set the project as allowed upstream project if it was not blocked and node shutdown enabled:
+        // Set the project as allowed upstream project if it was not blocked and node shutdown
+        // enabled:
         if (blockage == null && nodeIsGoingToShutdown) {
-            AbstractProject project = (AbstractProject)item.task;
-            plugin.addPermittedUpstreamProject(project, nodeName);
+            plugin.addPermittedUpstreamQueueId(item.getId(), nodeName);
         }
 
         return blockage;

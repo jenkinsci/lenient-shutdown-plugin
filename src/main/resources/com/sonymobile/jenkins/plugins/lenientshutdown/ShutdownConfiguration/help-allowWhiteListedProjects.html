@@ -1,0 +1,5 @@
+Allow white listed projects to run when global lenient shutdown is enabled and while any permitted builds are still running.
+Once all builds that have been running when lenient shutdown was activated and their downstream builds are finished, 
+no more white listed projects will start that are not triggered by an upstream build.
+<p>
+It is not recommended to white list projects that have a long runtime or trigger many downstream projects.

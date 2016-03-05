@@ -24,6 +24,10 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Executor;
@@ -33,14 +37,12 @@ import hudson.model.User;
 import hudson.model.listeners.RunListener;
 import jenkins.util.Timer;
 
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  * Listens for completed builds and sets nodes as offline when they are
  * finished if they have "set as temp. offline leniently" activated.
- * @param <R> run type
+ *
+ * @param <R>
+ *            run type
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
@@ -62,7 +64,7 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
                 final String nodeName = computer.getName();
 
                 if (plugin.isNodeShuttingDown(nodeName)) {
-                    //Schedule checking if all builds are completed on the build node after a delay:
+                    // Schedule checking if all builds are completed on the build node after a delay
                     Runnable isNodeIdleTask = new Runnable() {
                         @Override
                         public void run() {
@@ -81,6 +83,12 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
                 }
             }
         }
-    }
 
+        ShutdownManageLink shutdownManageLink = ShutdownManageLink.getInstance();
+        boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
+
+        if (isGoingToShutdown) {
+            shutdownManageLink.removeActiveQueueId(r.getQueueId());
+        }
+    }
 }
