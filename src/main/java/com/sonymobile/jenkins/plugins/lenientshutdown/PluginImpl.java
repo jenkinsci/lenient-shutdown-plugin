@@ -145,17 +145,17 @@ public class PluginImpl extends Plugin {
      * Checks if any of the project names in argument list are marked as white listed upstream
      * projects for a specific slave.
      *
-     * @param projectNames
+     * @param queueItemsIds
      *            the list of project names to check
      * @param nodeName
      *            the specific slave name to check for
      * @return true if at least one of the projects is white listed
      */
-    public boolean isAnyPermittedUpstreamQueueId(Set<Long> projectNames, String nodeName) {
+    public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
         boolean isPermitted = false;
-        Set<Long> permittedProjectNames = getPermittedQueuedItemIds(nodeName);
-        if (permittedProjectNames != null) {
-            Collection<?> intersection = CollectionUtils.intersection(projectNames, permittedProjectNames);
+        Set<Long> permittedQueueItemIds = getPermittedQueuedItemIds(nodeName);
+        if (permittedQueueItemIds != null) {
+            Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
             isPermitted = !intersection.isEmpty();
         }
         return isPermitted;
