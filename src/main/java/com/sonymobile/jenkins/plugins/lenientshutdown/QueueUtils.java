@@ -37,6 +37,7 @@ import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Node;
 import hudson.model.Queue;
+import hudson.model.Run;
 import hudson.model.Queue.BuildableItem;
 import jenkins.model.Jenkins;
 
@@ -197,13 +198,10 @@ public final class QueueUtils {
         for (Cause cause : item.getCauses()) {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
-                String upstreamProjectName = upstreamCause.getUpstreamProject();
-                AbstractProject upstreamProject = (AbstractProject)Jenkins.getInstance()
-                        .getItemByFullName(upstreamProjectName);
+                Run<?, ?> upstreamRun = upstreamCause.getUpstreamRun();
 
-                if (upstreamProject != null) {
-                    AbstractBuild upstreamBuild = upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
-                    upstreamBuilds.add(upstreamBuild);
+                if (upstreamRun != null && upstreamRun instanceof AbstractBuild) {
+                    upstreamBuilds.add((AbstractBuild)upstreamRun);
                 }
             }
         }
