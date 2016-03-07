@@ -192,8 +192,7 @@ public class ShutdownManageLink extends ManagementLink {
      *
      * @param req StaplerRequest
      * @param rsp StaplerResponse
-     * @throws IOException
-     *             if unable to redirect
+     * @throws IOException if unable to redirect
      */
     public synchronized void doCancelLenientShutdown(StaplerRequest req, StaplerResponse rsp)
             throws IOException {

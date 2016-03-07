@@ -98,7 +98,6 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
     /**
      * Handles prevention of builds specific for a node when taking specific nodes offline leniently.
-     *
      * @param node the node to check prevention for
      * @param item the buildable item to check prevention for
      * @return CauseOfBlockage if a build is prevented, otherwise null
@@ -126,7 +125,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
             }
         }
 
-        // Set the project as allowed upstream project if it was not blocked and node shutdown enabled:
+        //Set the project as allowed upstream project if it was not blocked and node shutdown enabled:
         if (blockage == null && nodeIsGoingToShutdown) {
             plugin.addPermittedUpstreamQueueId(item.getId(), nodeName);
         }
