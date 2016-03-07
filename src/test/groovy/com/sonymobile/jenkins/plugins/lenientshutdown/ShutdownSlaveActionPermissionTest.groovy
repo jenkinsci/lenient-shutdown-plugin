@@ -23,6 +23,8 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown
 
+import java.util.concurrent.TimeUnit;
+
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException
 import hudson.model.Computer
 import hudson.security.GlobalMatrixAuthorizationStrategy
@@ -33,6 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.jvnet.hudson.test.GroovyJenkinsRule
+
 
 /**
  * Security and Permissions tests for {@link ShutdownSlaveAction}.
@@ -239,7 +242,10 @@ class ShutdownSlaveActionPermissionTest {
         setupSecurity()
         def client = jenkins.createWebClient().login("alice")
         startBuild()
+		TimeUnit.SECONDS.sleep(1);
+        
         client.getPage(slave, ShutdownSlaveAction.URL)
+        
         assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Unaffected"
     }
 
