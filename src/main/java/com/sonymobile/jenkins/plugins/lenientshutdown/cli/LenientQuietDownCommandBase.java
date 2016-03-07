@@ -101,7 +101,7 @@ public abstract class LenientQuietDownCommandBase extends CLICommand {
      *
      */
     protected void printShutdownConfiguration() {
-        
+
         ShutdownConfiguration config = ShutdownConfiguration.getInstance();
         if (config.isAllowAllQueuedItems()) {
             stdout.println(Messages.AllQueuedItemsAllowed());

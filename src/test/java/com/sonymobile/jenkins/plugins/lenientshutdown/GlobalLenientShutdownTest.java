@@ -368,8 +368,6 @@ public class GlobalLenientShutdownTest {
     /**
      * Waits until an item shows up in the queue.
      *
-     * @return The first item that showed up in the queue, null otherwise
-     *
      * @throws InterruptedException if interrupted
      */
     private void waitForItemInQueue() throws InterruptedException {

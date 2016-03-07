@@ -51,7 +51,7 @@ public final class QueueUtils {
     /**
      * Hiding utility class constructor.
      */
-    private QueueUtils() {}
+    private QueueUtils() { }
 
     /**
      * Returns the set of queue ids for items that are in the build queue.
@@ -279,4 +279,4 @@ public final class QueueUtils {
         }
         return hasExclusive;
     }
-}
+ }
