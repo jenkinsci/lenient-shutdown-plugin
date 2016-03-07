@@ -197,10 +197,8 @@ public class ShutdownManageLink extends ManagementLink {
      * Method triggered when pressing the cancel shutdown button.
      * Deactivates lenient shutdown.
      *
-     * @param req
-     *            StaplerRequest
-     * @param rsp
-     *            StaplerResponse
+     * @param req StaplerRequest
+     * @param rsp StaplerResponse
      * @throws IOException
      *             if unable to redirect
      */
@@ -216,14 +214,10 @@ public class ShutdownManageLink extends ManagementLink {
      * Method triggered when pressing the shutdown leniently button.
      * Activates lenient shutdown mode.
      *
-     * @param req
-     *            StaplerRequest
-     * @param rsp
-     *            StaplerResponse
-     * @throws IOException
-     *             if unable to redirect
-     * @throws ServletException
-     *             if unable to get submitted form
+     * @param req StaplerRequest
+     * @param rsp StaplerResponse
+     * @throws IOException if unable to redirect
+     * @throws ServletException if unable to get submitted form
      */
 
     public synchronized void doLenientShutdown(StaplerRequest req, StaplerResponse rsp)
@@ -261,8 +255,8 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Helper method for testing.
      *
-     * @return true if analysis, which projects are in the queue and running, is still ongoing,
-     *         false otherwise
+     * @return true if analysis, which projects are in the queue and running, is still ongoing, false
+     *         otherwise
      */
     public boolean isAnalyzing() {
         return analyzing;
@@ -271,8 +265,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Checks if any of the queue ids in argument list is in the list of permitted queue ids.
      *
-     * @param queueIds
-     *            the list of queue ids to check
+     * @param queueIds the list of queue ids to check
      * @return true if at least one of the projects is white listed
      */
     public boolean isAnyPermittedUpstreamProject(Set<Long> queueIds) {
@@ -283,8 +276,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Checks if any of the queue ids in argument list is coming from a white listed project run.
      *
-     * @param queueIds
-     *            the list of queue ids to check
+     * @param queueIds the list of queue ids to check
      * @return true if at least one of the projects is white listed
      */
     public boolean isAnyWhiteListedUpstreamProject(Set<Long> queueIds) {
@@ -304,8 +296,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Adds the queue id of a permitted build to the active queue ids.
      *
-     * @param id
-     *            the queue id to add
+     * @param id the queue id to add
      */
     public void addActiveQueueId(long id) {
         activeQueueIds.add(id);
@@ -315,8 +306,7 @@ public class ShutdownManageLink extends ManagementLink {
      * Removes the queue id of a permitted build from the active queue ids.
      * This is triggered when the build is finished.
      *
-     * @param id
-     *            the queue id to remove
+     * @param id the queue id to remove
      */
     public void removeActiveQueueId(long id) {
         activeQueueIds.remove(id);
@@ -325,8 +315,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Adds a queue id to the set of permitted upstream queue ids.
      *
-     * @param id
-     *            the queue id to add to white list
+     * @param id the queue id to add to white list
      */
     public void addPermittedUpstreamQueueId(long id) {
         permittedQueueIds.add(id);
@@ -335,8 +324,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Returns true if id is a permitted queue id.
      *
-     * @param id
-     *            the queue item id to check for
+     * @param id the queue item id to check for
      * @return true if it was queued
      */
     public boolean isPermittedQueueId(long id) {
@@ -346,8 +334,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Adds the queue id to the set of white listed queue ids.
      *
-     * @param id
-     *            the queue id to add
+     * @param id the queue id to add
      */
     public void addWhiteListedQueueId(long id) {
         whiteListedQueueIds.add(id);

@@ -77,8 +77,7 @@ public class PluginImpl extends Plugin {
     /**
      * Checks if argument node is shutting down leniently.
      *
-     * @param nodeName
-     *            the slave name to check
+     * @param nodeName the slave name to check
      * @return true if node is shutting down, otherwise false
      */
     public boolean isNodeShuttingDown(String nodeName) {
@@ -89,8 +88,7 @@ public class PluginImpl extends Plugin {
     /**
      * Toggles lenient shutdown mode for argument node.
      *
-     * @param nodeName
-     *            the node name to toggle for
+     * @param nodeName the node name to toggle for
      */
     public synchronized void toggleNodeShuttingDown(String nodeName) {
         Boolean nodeShuttingDown = lenientOfflineSlaves.get(nodeName);
@@ -104,8 +102,7 @@ public class PluginImpl extends Plugin {
     /**
      * Actually sets the node offline or prepares it to be leniently and then later offline.
      *
-     * @param computer
-     *            the computer.
+     * @param computer the computer.
      */
     public void setNodeOffline(final Computer computer) {
         if (computer == null) {
@@ -145,10 +142,8 @@ public class PluginImpl extends Plugin {
      * Checks if any of the project names in argument list are marked as white listed upstream
      * projects for a specific slave.
      *
-     * @param queueItemsIds
-     *            the list of project names to check
-     * @param nodeName
-     *            the specific slave name to check for
+     * @param queueItemsIds the list of project names to check
+     * @param nodeName the specific slave name to check for
      * @return true if at least one of the projects is white listed
      */
     public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
@@ -165,10 +160,8 @@ public class PluginImpl extends Plugin {
      * Returns true if argument queue item was queued when lenient shutdown was activated
      * for a specific slave.
      *
-     * @param id
-     *            the queue item id to check for
-     * @param nodeName
-     *            the specific slave name to check for
+     * @param id the queue item id to check for
+     * @param nodeName the specific slave name to check for
      * @return true if it was queued
      */
     public boolean wasAlreadyQueued(long id, String nodeName) {
@@ -179,10 +172,8 @@ public class PluginImpl extends Plugin {
     /**
      * Adds argument project as a permitted upstream project for a specific slave.
      *
-     * @param id
-     *            the queue id to add
-     * @param nodeName
-     *            the slave name to add the permitted project for
+     * @param id the queue id to add
+     * @param nodeName the slave name to add the permitted project for
      */
     public void addPermittedUpstreamQueueId(long id, String nodeName) {
         Set<Long> permittedUpstreamProjectNames = getPermittedQueuedItemIds(nodeName);
@@ -192,10 +183,8 @@ public class PluginImpl extends Plugin {
     /**
      * Sets the argument user as the user that put the argument node in lenient offline mode.
      *
-     * @param nodeName
-     *            the node that was put in lenient offline mode
-     * @param user
-     *            the user that put the node into lenient offline mode
+     * @param nodeName the node that was put in lenient offline mode
+     * @param user the user that put the node into lenient offline mode
      */
     public void setOfflineByUser(String nodeName, User user) {
         userTriggers.put(nodeName, user);
@@ -204,8 +193,7 @@ public class PluginImpl extends Plugin {
     /**
      * Gets the user that put the argument node in lenient offline mode.
      *
-     * @param nodeName
-     *            the node to get user for
+     * @param nodeName the node to get user for
      * @return user that put the slave in lenient offline mode
      */
     public User getOfflineByUser(String nodeName) {
@@ -220,8 +208,7 @@ public class PluginImpl extends Plugin {
      * Gets all item ids that were queued and could only be build on
      * the argument specific slave when it was set to lenient offline mode.
      *
-     * @param nodeName
-     *            the node to get specific queue items for
+     * @param nodeName the node to get specific queue items for
      * @return set of queued item ids
      */
     public synchronized Set<Long> getPermittedQueuedItemIds(String nodeName) {

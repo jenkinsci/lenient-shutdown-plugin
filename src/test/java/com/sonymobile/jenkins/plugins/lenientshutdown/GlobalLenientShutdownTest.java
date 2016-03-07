@@ -74,17 +74,14 @@ public class GlobalLenientShutdownTest {
     public JenkinsRule jenkinsRule = new JenkinsRule();
 
     private static final int TIMEOUT_SECONDS = 60;
-    private static final int SHORT_TIMEOUT_SECONDS = 15;
     private static final int QUIET_PERIOD = 15;
-    private static final int SHORT_QUIET_PERIOD = 3;
     private static final int NUM_EXECUTORS = 4;
 
     /**
      * Changes the number of executors on the Jenkins master.
      * Runs before every test.
      *
-     * @throws IOException
-     *             if something goes wrong
+     * @throws IOException if something goes wrong
      */
     @Before
     public void setUp() throws IOException {
@@ -97,8 +94,7 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that the URL for activating shutdown mode works as expected.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testActivateShutdown() throws Exception {
@@ -109,8 +105,7 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that the URL for deactivating shutdown mode works as expected.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDeactivateShutdown() throws Exception {
@@ -123,8 +118,7 @@ public class GlobalLenientShutdownTest {
      * Tests that all builds are started as normal when the shutdown mode has
      * not been initiated.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testBuildsDirectlyWhenShutdownDisabled() throws Exception {
@@ -140,8 +134,7 @@ public class GlobalLenientShutdownTest {
      * Tests that builds without white listed upstreams are blocked
      * after shutdown mode is initiated.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testBlocksBuildWhenShutdownEnabled() throws Exception {
@@ -158,8 +151,7 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that blocked builds are allowed to run after shutdown mode is deactivated again.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDoesNotBlockAfterShutdownDisabledAgain() throws Exception {
@@ -185,8 +177,7 @@ public class GlobalLenientShutdownTest {
      * Tests that builds with white listed upstreams are allowed,
      * even though lenient shutdown mode is active.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDoesNotBlockDownstream() throws Exception {
@@ -214,8 +205,7 @@ public class GlobalLenientShutdownTest {
      * even though lenient shutdown mode is active. The upstreams are defined
      * with Parameterized Trigger Plugin.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDoesNotBlockParameterizedPluginDownstream() throws Exception {
@@ -248,8 +238,7 @@ public class GlobalLenientShutdownTest {
      * Parameterized Trigger Plugin are allowed to finish when lenient shutdown
      * is activated during build.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testParameterizedPluginBuildStep() throws Exception {
@@ -284,8 +273,7 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that the lenient shutdown link on the manage page is visible.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testLinkIsVisible() throws Exception {
@@ -297,8 +285,7 @@ public class GlobalLenientShutdownTest {
      * Tests that projects that are in queue when lenient shutdown is enabled
      * are allowed to build if they have a completed upstream project.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDoesNotBlockQueuedWithCompletedUpstream() throws Exception {
@@ -325,10 +312,8 @@ public class GlobalLenientShutdownTest {
     /**
      * Waits for the given project to appear in the queue.
      *
-     * @param project
-     *            the project to wait for
-     * @throws InterruptedException
-     *             if interupted
+     * @param project the project to wait for
+     * @throws InterruptedException if interupted
      */
     private void waitForProjectInQueue(FreeStyleProject project) throws InterruptedException {
         int elapsedSeconds = 0;
@@ -349,8 +334,7 @@ public class GlobalLenientShutdownTest {
      * Tests that projects that are in queue when lenient shutdown is enabled
      * are blocked if they don't have an upstream project and allow all queued items was not set.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testBlocksQueuedWithoutUpstream() throws Exception {
@@ -371,13 +355,10 @@ public class GlobalLenientShutdownTest {
     /**
      * Waits that the given project shows up in the queue and that it is blocked.
      *
-     * @param project
-     *            The project to wait for
-     * @param timeout
-     *            seconds to wait before aborting
+     * @param project The project to wait for
+     * @param timeout seconds to wait before aborting
      * @return the found item, null if the item didn't show up in the queue until timeout
-     * @throws InterruptedException
-     *             if interrupted
+     * @throws InterruptedException if interrupted
      */
     private Item waitForBlockedItem(FreeStyleProject project, int timeout) throws InterruptedException {
         Queue jenkinsQueue = Jenkins.getInstance().getQueue();
@@ -400,16 +381,14 @@ public class GlobalLenientShutdownTest {
      *
      * @return The first item that showed up in the queue, null otherwise
      *
-     * @throws InterruptedException
-     *             if interrupted
+     * @throws InterruptedException if interrupted
      */
-    private Item waitForItemInQueue() throws InterruptedException {
+    private void waitForItemInQueue() throws InterruptedException {
         Queue queue = Queue.getInstance();
         int elapsedSeconds = 0;
         while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            Item[] queueItems = queue.getItems();
-            if (queueItems.length > 0) {
-                return queueItems[0];
+            if (queue.getItems().length > 0) {
+                return;
             }
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;
@@ -417,15 +396,14 @@ public class GlobalLenientShutdownTest {
         if (elapsedSeconds >= TIMEOUT_SECONDS) {
             fail("Project was not queued up within time limit");
         }
-        return null;
+        return;
     }
 
     /**
      * Tests that projects that are in queue when lenient shutdown is enabled
      * are not blocked if they don't have an upstream project and allow all queued items was set.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDoesntBlockQueuedWithoutUpstreamWhenAllowAllQueuedEnabled() throws Exception {
@@ -446,8 +424,7 @@ public class GlobalLenientShutdownTest {
      * finished.
      * The asynchronous call of the analysis leads to race conditions in the tests.
      *
-     * @throws InterruptedException
-     *             if interrupted
+     * @throws InterruptedException if interrupted
      */
     private void waitForAnalysisToFinish() throws InterruptedException {
         ShutdownManageLink shutdownManage = ShutdownManageLink.getInstance();
@@ -468,8 +445,7 @@ public class GlobalLenientShutdownTest {
      * Tests that a white listed projects is blocked when the queue was empty
      * when lenient shutdown was activated.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testWhiteListedProjectsAreBlockedWhenQueueEmpty() throws Exception {
@@ -483,9 +459,9 @@ public class GlobalLenientShutdownTest {
 
         waitForAnalysisToFinish();
 
-        project.scheduleBuild2(SHORT_QUIET_PERIOD);
+        project.scheduleBuild2(QUIET_PERIOD);
 
-        Item queueItem = waitForBlockedItem(project, SHORT_TIMEOUT_SECONDS);
+        Item queueItem = waitForBlockedItem(project, TIMEOUT_SECONDS);
 
         assertTrue(queueItem.isBlocked());
     }
@@ -494,8 +470,7 @@ public class GlobalLenientShutdownTest {
      * Tests that a white listed project is not blocked when the queue was not empty
      * when lenient shutdown was activated and builds are still running.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
@@ -530,8 +505,7 @@ public class GlobalLenientShutdownTest {
      * lenient shutdown was activated, white listed projects are allowed and builds are still
      * running.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testNonWhiteListedProjectsAreBlockedWhenQueueNotEmpty() throws Exception {
@@ -557,8 +531,8 @@ public class GlobalLenientShutdownTest {
         toggleLenientShutdown();
         waitForAnalysisToFinish();
 
-        nonWhiteListedProject.scheduleBuild2(SHORT_QUIET_PERIOD);
-        Item queueItem = waitForBlockedItem(nonWhiteListedProject, SHORT_TIMEOUT_SECONDS);
+        nonWhiteListedProject.scheduleBuild2(QUIET_PERIOD);
+        Item queueItem = waitForBlockedItem(nonWhiteListedProject, TIMEOUT_SECONDS);
 
         assertSuccessfulBuilds(parent, child);
         assertThat(queueItem.isBlocked(), is(true));
@@ -568,8 +542,7 @@ public class GlobalLenientShutdownTest {
      * Tests that a white listed project is blocked when the queue was not empty
      * when lenient shutdown was activated and builds are finished.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testWhiteListedProjectsAreBlockedWhenQueueNotEmptyAllBuildsFinished() throws Exception {
@@ -606,8 +579,7 @@ public class GlobalLenientShutdownTest {
      * Tests that a downstream build of a white listed project is not blocked when the queue was not
      * empty when lenient shutdown was activated and builds are still running.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     @Test
     public void testDownstreamOfWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
@@ -640,10 +612,9 @@ public class GlobalLenientShutdownTest {
     }
 
     /**
-     * Toggles the lenient shutdown mode using the plugin URL.
+     * Toggles the lenient shutdown mode.
      *
-     * @throws Exception
-     *             if something goes wrong
+     * @throws Exception if something goes wrong
      */
     private void toggleLenientShutdown() throws Exception {
         ShutdownManageLink.getInstance().performToggleGoingToShutdown();

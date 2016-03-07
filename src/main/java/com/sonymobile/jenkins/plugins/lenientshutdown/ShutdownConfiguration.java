@@ -87,8 +87,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Sets the flag if all queued items are allowed to finish or not.
      *
-     * @param allowAllQueuedItems
-     *            true - enabled, false - disabled
+     * @param allowAllQueuedItems true - enabled, false - disabled
      */
     public void setAllowAllQueuedItems(boolean allowAllQueuedItems) {
         this.allowAllQueuedItems = allowAllQueuedItems;
@@ -97,8 +96,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Sets the flag if white listed projects are allowed or not.
      *
-     * @param allowWhiteListedProjects
-     *            true - enabled, false - disabled
+     * @param allowWhiteListedProjects true - enabled, false - disabled
      */
     public void setAllowWhiteListedProjects(boolean allowWhiteListedProjects) {
         this.allowWhiteListedProjects = allowWhiteListedProjects;
@@ -116,8 +114,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Sets the shutdown message to be displayed in header.
      *
-     * @param shutdownMessage
-     *            message to display in header
+     * @param shutdownMessage message to display in header
      */
     public void setShutdownMessage(String shutdownMessage) {
         this.shutdownMessage = shutdownMessage;
@@ -144,11 +141,8 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Checks whether the given project name is allowed to run.
      *
-     * @param name
-     *            the name of the project to check
-     * @return true
-     *         if white listed projects are allowed and the given project name is in the list
-     *         of white listed projects
+     * @param name the name of the project to check
+     * @return true if white listed projects are allowed and the given project name is found in the list
      */
     public boolean isWhiteListedProject(String name) {
         return allowWhiteListedProjects && whiteListedProjects.contains(name);
@@ -158,13 +152,10 @@ public class ShutdownConfiguration extends GlobalConfiguration {
      * Called when an admin saves settings in the global configuration page.
      * Persists the current settings to disk.
      *
-     * @param staplerRequest
-     *            the request
-     * @param json
-     *            form data
+     * @param staplerRequest the request
+     * @param json form data
      * @return always true
-     * @throws FormException
-     *             if the form was malformed
+     * @throws FormException if the form was malformed
      */
     @Override
     public boolean configure(StaplerRequest staplerRequest, JSONObject json) throws FormException {

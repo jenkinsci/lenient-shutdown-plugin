@@ -51,7 +51,7 @@ public final class QueueUtils {
     /**
      * Hiding utility class constructor.
      */
-    private QueueUtils() { }
+    private QueueUtils() {}
 
     /**
      * Returns the set of queue ids for items that are in the build queue.
@@ -189,8 +189,7 @@ public final class QueueUtils {
     /**
      * Gets all upstream builds that triggered argument queue item.
      *
-     * @param item
-     *            the queue item to find upstream builds for
+     * @param item the queue item to find upstream builds for
      * @return set of upstream builds
      */
     public static Set<AbstractBuild> getUpstreamBuilds(Queue.Item item) {
@@ -212,10 +211,8 @@ public final class QueueUtils {
      * Checks if there are any online nodes other than the argument node
      * that can build the item.
      *
-     * @param item
-     *            the item to build
-     * @param node
-     *            the node to exclude in the search
+     * @param item the item to build
+     * @param node the node to exclude in the search
      * @return true if any other available nodes were found, otherwise false
      */
     public static boolean canOtherNodeBuild(Queue.Item item, Node node) {
@@ -254,8 +251,7 @@ public final class QueueUtils {
     /**
      * Checks if argument computer is currently building something.
      *
-     * @param computer
-     *            the computer to check for
+     * @param computer the computer to check for
      * @return true if computer is building, otherwise false
      */
     public static boolean isBuilding(Computer computer) {
@@ -278,8 +274,7 @@ public final class QueueUtils {
      * by the argument computer.
      * Note: This method locks the queue; don't use excessively.
      *
-     * @param computer
-     *            the computer to check assignment for
+     * @param computer the computer to check assignment for
      * @return true if there are builds that can only be build by argument
      *         computer, otherwise false
      */

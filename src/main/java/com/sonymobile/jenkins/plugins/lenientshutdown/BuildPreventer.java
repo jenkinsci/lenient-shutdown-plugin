@@ -50,8 +50,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
     /**
      * Handles prevention of builds for lenient shutdown on the Jenkins master.
      *
-     * @param item
-     *            QueueItem to build
+     * @param item QueueItem to build
      * @return CauseOfBlockage if a build is prevented, otherwise null
      */
     @Override
@@ -102,10 +101,8 @@ public class BuildPreventer extends QueueTaskDispatcher {
      * Handles prevention of builds specific for a node when taking specific nodes offline
      * leniently.
      *
-     * @param node
-     *            the node to check prevention for
-     * @param item
-     *            the buildable item to check prevention for
+     * @param node the node to check prevention for
+     * @param item the buildable item to check prevention for
      * @return CauseOfBlockage if a build is prevented, otherwise null
      */
     @Override

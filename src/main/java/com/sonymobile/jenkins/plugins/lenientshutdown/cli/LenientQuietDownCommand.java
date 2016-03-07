@@ -51,7 +51,8 @@ public class LenientQuietDownCommand extends LenientQuietDownCommandBase {
         if (!management.isGoingToShutdown()) {
             management.performToggleGoingToShutdown();
             configure();
-            printStatus();
+            stdout.println(Messages.IsAboutToShutDown());
+            printShutdownConfiguration();
             return 0;
         } else {
             stderr.println(Messages.Err_AlreadyShuttingDown());
