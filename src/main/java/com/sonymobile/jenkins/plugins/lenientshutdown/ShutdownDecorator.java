@@ -39,7 +39,6 @@ public class ShutdownDecorator extends PageDecorator {
 
     /**
      * Checks if Jenkins has been put to lenient shutdown mode.
-     *
      * @return true if Jenkins is in lenient shutdown mode, otherwise false
      */
     public boolean isGoingToShutdown() {
@@ -48,7 +47,6 @@ public class ShutdownDecorator extends PageDecorator {
 
     /**
      * Gets the shutdown message to be displayed in header.
-     *
      * @return message to display in header
      */
     public String getShutdownMessage() {
@@ -57,7 +55,6 @@ public class ShutdownDecorator extends PageDecorator {
 
     /**
      * The singleton instance registered in the Jenkins extension list.
-     *
      * @return the instance.
      */
     public static ShutdownDecorator getInstance() {

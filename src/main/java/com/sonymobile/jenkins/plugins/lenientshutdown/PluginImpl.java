@@ -76,7 +76,6 @@ public class PluginImpl extends Plugin {
 
     /**
      * Checks if argument node is shutting down leniently.
-     *
      * @param nodeName the slave name to check
      * @return true if node is shutting down, otherwise false
      */
@@ -87,7 +86,6 @@ public class PluginImpl extends Plugin {
 
     /**
      * Toggles lenient shutdown mode for argument node.
-     *
      * @param nodeName the node name to toggle for
      */
     public synchronized void toggleNodeShuttingDown(String nodeName) {
@@ -113,7 +111,7 @@ public class PluginImpl extends Plugin {
             return;
         }
         if (QueueUtils.isBuilding(computer) || QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
-            // Doing some work; we want to take offline leniently
+            //Doing some work; we want to take offline leniently
             final String nodeName = node.getNodeName();
             toggleNodeShuttingDown(nodeName);
             setOfflineByUser(nodeName, User.current());
@@ -129,7 +127,7 @@ public class PluginImpl extends Plugin {
                 }
             });
 
-        } else { // No builds; we can take offline directly
+        } else { //No builds; we can take offline directly
             User currentUser = User.current();
             if (currentUser == null) {
                 currentUser = User.getUnknown();
@@ -141,7 +139,6 @@ public class PluginImpl extends Plugin {
     /**
      * Checks if any of the project names in argument list are marked as white listed upstream
      * projects for a specific slave.
-     *
      * @param queueItemsIds the list of project names to check
      * @param nodeName the specific slave name to check for
      * @return true if at least one of the projects is white listed
@@ -159,7 +156,6 @@ public class PluginImpl extends Plugin {
     /**
      * Returns true if argument queue item was queued when lenient shutdown was activated
      * for a specific slave.
-     *
      * @param id the queue item id to check for
      * @param nodeName the specific slave name to check for
      * @return true if it was queued
@@ -171,7 +167,6 @@ public class PluginImpl extends Plugin {
 
     /**
      * Adds argument project as a permitted upstream project for a specific slave.
-     *
      * @param id the queue id to add
      * @param nodeName the slave name to add the permitted project for
      */
@@ -182,7 +177,6 @@ public class PluginImpl extends Plugin {
 
     /**
      * Sets the argument user as the user that put the argument node in lenient offline mode.
-     *
      * @param nodeName the node that was put in lenient offline mode
      * @param user the user that put the node into lenient offline mode
      */
@@ -192,7 +186,6 @@ public class PluginImpl extends Plugin {
 
     /**
      * Gets the user that put the argument node in lenient offline mode.
-     *
      * @param nodeName the node to get user for
      * @return user that put the slave in lenient offline mode
      */
@@ -207,7 +200,6 @@ public class PluginImpl extends Plugin {
     /**
      * Gets all item ids that were queued and could only be build on
      * the argument specific slave when it was set to lenient offline mode.
-     *
      * @param nodeName the node to get specific queue items for
      * @return set of queued item ids
      */

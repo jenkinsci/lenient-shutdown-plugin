@@ -41,8 +41,7 @@ import jenkins.util.Timer;
  * Listens for completed builds and sets nodes as offline when they are
  * finished if they have "set as temp. offline leniently" activated.
  *
- * @param <R>
- *            run type
+ * @param <R> run type
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
@@ -64,7 +63,7 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
                 final String nodeName = computer.getName();
 
                 if (plugin.isNodeShuttingDown(nodeName)) {
-                    // Schedule checking if all builds are completed on the build node after a delay
+                    //Schedule checking if all builds are completed on the build node after a delay
                     Runnable isNodeIdleTask = new Runnable() {
                         @Override
                         public void run() {

@@ -80,20 +80,18 @@ public class GlobalLenientShutdownTest {
     /**
      * Changes the number of executors on the Jenkins master.
      * Runs before every test.
-     *
      * @throws IOException if something goes wrong
      */
     @Before
     public void setUp() throws IOException {
         Jenkins jenkins = jenkinsRule.getInstance();
         jenkins.setNumExecutors(NUM_EXECUTORS);
-        // TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
+        //TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
         jenkins.setNodes(jenkins.getNodes());
     }
 
     /**
      * Tests that the URL for activating shutdown mode works as expected.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -104,7 +102,6 @@ public class GlobalLenientShutdownTest {
 
     /**
      * Tests that the URL for deactivating shutdown mode works as expected.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -117,14 +114,13 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that all builds are started as normal when the shutdown mode has
      * not been initiated.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
     public void testBuildsDirectlyWhenShutdownDisabled() throws Exception {
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
 
-        // Builds and waits until completion (timeout 1 min):
+        //Builds and waits until completion (timeout 1 min):
         FreeStyleBuild build = project.scheduleBuild2(0).get(1, TimeUnit.MINUTES);
 
         assertThat(build.getResult(), is(equalTo(Result.SUCCESS)));
@@ -133,7 +129,6 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that builds without white listed upstreams are blocked
      * after shutdown mode is initiated.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -150,7 +145,6 @@ public class GlobalLenientShutdownTest {
 
     /**
      * Tests that blocked builds are allowed to run after shutdown mode is deactivated again.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -164,7 +158,7 @@ public class GlobalLenientShutdownTest {
             fail("Project was not blocked within time limit");
         }
 
-        // Disables shutdown mode
+        //Disables shutdown mode
         toggleLenientShutdown();
 
         FreeStyleBuild build = (FreeStyleBuild)buildFuture.get(1, TimeUnit.MINUTES); // Wait for
@@ -176,7 +170,6 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that builds with white listed upstreams are allowed,
      * even though lenient shutdown mode is active.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -189,10 +182,10 @@ public class GlobalLenientShutdownTest {
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
         Jenkins.getInstance().rebuildDependencyGraph();
 
-        // Gives lenient shutdown mode time to activate while parent is still building:
+        //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new Shell("sleep 5"));
 
-        // Trigger build of the first project, which starts the chain:
+        //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
 
         toggleLenientShutdown();
@@ -204,7 +197,6 @@ public class GlobalLenientShutdownTest {
      * Tests that builds with white listed upstreams are allowed,
      * even though lenient shutdown mode is active. The upstreams are defined
      * with Parameterized Trigger Plugin.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -222,10 +214,10 @@ public class GlobalLenientShutdownTest {
         child.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(grandChildTrigger));
         Jenkins.getInstance().rebuildDependencyGraph();
 
-        // Gives lenient shutdown mode time to activate while parent is still building:
+        //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new Shell("sleep 5"));
 
-        // Trigger build of the first project, which starts the chain:
+        //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
 
         toggleLenientShutdown();
@@ -246,7 +238,7 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
-        // Gives lenient shutdown mode time to activate while parent is still building:
+        //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new Shell("sleep 5"));
 
         BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
@@ -262,17 +254,16 @@ public class GlobalLenientShutdownTest {
 
         Jenkins.getInstance().rebuildDependencyGraph();
 
-        // Trigger build of the first project, which starts the chain:
+        //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
 
         toggleLenientShutdown();
 
-        assertSuccessfulBuilds(child, parent, grandChild);
+        assertSuccessfulBuilds(parent, child, grandChild);
     }
 
     /**
      * Tests that the lenient shutdown link on the manage page is visible.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -284,7 +275,6 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that projects that are in queue when lenient shutdown is enabled
      * are allowed to build if they have a completed upstream project.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -298,10 +288,10 @@ public class GlobalLenientShutdownTest {
         child.setQuietPeriod(QUIET_PERIOD);
         Jenkins.getInstance().rebuildDependencyGraph();
 
-        // Trigger build of the parent project, and wait for it to finish:
+        //Trigger build of the parent project, and wait for it to finish:
         parent.scheduleBuild2(0).get();
 
-        // Wait for the child project to queue up (in quiet period)
+        //Wait for the child project to queue up (in quiet period)
         waitForProjectInQueue(child);
 
         toggleLenientShutdown();
@@ -333,7 +323,6 @@ public class GlobalLenientShutdownTest {
     /**
      * Tests that projects that are in queue when lenient shutdown is enabled
      * are blocked if they don't have an upstream project and allow all queued items was not set.
-     *
      * @throws Exception if something goes wrong
      */
     @Test
@@ -341,7 +330,7 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
         project.scheduleBuild2(QUIET_PERIOD);
 
-        // Wait for the project to queue up (in quiet period)
+        //Wait for the project to queue up (in quiet period)
         waitForItemInQueue();
 
         toggleLenientShutdown();
@@ -410,7 +399,7 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
         project.scheduleBuild2(QUIET_PERIOD);
 
-        // Wait for the project to queue up (in quiet period)
+        //Wait for the project to queue up (in quiet period)
         waitForItemInQueue();
 
         ShutdownManageLink.getInstance().getConfiguration().setAllowAllQueuedItems(true);

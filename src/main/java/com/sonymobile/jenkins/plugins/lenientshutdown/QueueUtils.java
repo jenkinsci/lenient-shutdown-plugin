@@ -58,7 +58,6 @@ public final class QueueUtils {
      * Depending on the configuration this is either just those that have a completed upstream
      * project if they are a project build or all entries that are currently in the queue.
      * Note: This method locks the queue; don't use excessively.
-     *
      * @return set of item ids
      */
     public static Set<Long> getPermittedQueueItemIds() {
@@ -87,9 +86,7 @@ public final class QueueUtils {
      * Returns a set of queued item ids that are bound to a specific node
      * and should be permitted to build since they have a completed upstream project.
      * Note: This method locks the queue; don't use excessively.
-     *
-     * @param nodeName
-     *            the node name to check allowed ids for
+     * @param nodeName the node name to check allowed ids for
      * @return set of permitted item ids
      */
     public static Set<Long> getPermittedQueueItemIds(String nodeName) {
@@ -137,8 +134,7 @@ public final class QueueUtils {
     /**
      * Returns a set of queue ids of all currently running builds on a node.
      *
-     * @param nodeName
-     *            the node name to list running projects for
+     * @param nodeName the node name to list running projects for
      * @return set of queue ids
      */
     public static Set<Long> getRunninProjectsQueueIDs(String nodeName) {
@@ -170,9 +166,7 @@ public final class QueueUtils {
 
     /**
      * Gets the queue ids of all upstream projects that triggered argument queue item.
-     *
-     * @param item
-     *            the queue item to find upstream projects for
+     * @param item the queue item to find upstream projects for
      * @return set of upstream project names
      */
     public static Set<Long> getUpstreamQueueIds(Queue.Item item) {
@@ -188,7 +182,6 @@ public final class QueueUtils {
 
     /**
      * Gets all upstream builds that triggered argument queue item.
-     *
      * @param item the queue item to find upstream builds for
      * @return set of upstream builds
      */
@@ -210,7 +203,6 @@ public final class QueueUtils {
     /**
      * Checks if there are any online nodes other than the argument node
      * that can build the item.
-     *
      * @param item the item to build
      * @param node the node to exclude in the search
      * @return true if any other available nodes were found, otherwise false
@@ -233,9 +225,9 @@ public final class QueueUtils {
                 }
             }
         } else if (item instanceof Queue.WaitingItem) {
-            // Item is in quiet period. We can't make a full check if other nodes can build,
-            // instead we check if its upstream was built on the argument node and it that case
-            // return false.
+            //Item is in quiet period. We can't make a full check if other nodes can build,
+            //instead we check if its upstream was built on the argument node and it that case
+            //return false.
             otherNodeCanBuild = true;
             for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
                 boolean isUpstreamFinished = !upstreamBuild.isBuilding();
@@ -250,7 +242,6 @@ public final class QueueUtils {
 
     /**
      * Checks if argument computer is currently building something.
-     *
      * @param computer the computer to check for
      * @return true if computer is building, otherwise false
      */
@@ -273,10 +264,8 @@ public final class QueueUtils {
      * Checks if there are any builds in queue that can only be built
      * by the argument computer.
      * Note: This method locks the queue; don't use excessively.
-     *
      * @param computer the computer to check assignment for
-     * @return true if there are builds that can only be build by argument
-     *         computer, otherwise false
+     * @return true if there are builds that can only be build by argument computer, otherwise false
      */
     public static boolean hasNodeExclusiveItemInQueue(Computer computer) {
         boolean hasExclusive = false;
@@ -290,5 +279,4 @@ public final class QueueUtils {
         }
         return hasExclusive;
     }
-
 }

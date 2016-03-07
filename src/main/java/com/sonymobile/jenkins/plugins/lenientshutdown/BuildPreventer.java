@@ -49,13 +49,12 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
     /**
      * Handles prevention of builds for lenient shutdown on the Jenkins master.
-     *
      * @param item QueueItem to build
      * @return CauseOfBlockage if a build is prevented, otherwise null
      */
     @Override
     public CauseOfBlockage canRun(Queue.Item item) {
-        CauseOfBlockage blockage = null; // Allow to run by default
+        CauseOfBlockage blockage = null; //Allow to run by default
 
         ShutdownManageLink shutdownManageLink = ShutdownManageLink.getInstance();
         boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
@@ -84,7 +83,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
             }
         }
 
-        // Set the project as allowed upstream project if it was not blocked and shutdown enabled:
+        //Set the project as allowed upstream project if it was not blocked and shutdown enabled:
         if (blockage == null && isGoingToShutdown) {
             if (isWhitelistedProject) {
                 shutdownManageLink.addWhiteListedQueueId(item.getId());
@@ -98,8 +97,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
     }
 
     /**
-     * Handles prevention of builds specific for a node when taking specific nodes offline
-     * leniently.
+     * Handles prevention of builds specific for a node when taking specific nodes offline leniently.
      *
      * @param node the node to check prevention for
      * @param item the buildable item to check prevention for
@@ -107,7 +105,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
      */
     @Override
     public CauseOfBlockage canTake(Node node, Queue.BuildableItem item) {
-        CauseOfBlockage blockage = null; // Allow to run by default
+        CauseOfBlockage blockage = null; //Allow to run by default
 
         PluginImpl plugin = PluginImpl.getInstance();
         String nodeName = node.getNodeName();
@@ -128,8 +126,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
             }
         }
 
-        // Set the project as allowed upstream project if it was not blocked and node shutdown
-        // enabled:
+        // Set the project as allowed upstream project if it was not blocked and node shutdown enabled:
         if (blockage == null && nodeIsGoingToShutdown) {
             plugin.addPermittedUpstreamQueueId(item.getId(), nodeName);
         }

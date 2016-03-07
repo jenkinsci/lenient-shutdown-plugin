@@ -85,7 +85,6 @@ public class ShutdownManageLink extends ManagementLink {
 
     /**
      * Returns the instance of ShutdownMangeLink.
-     *
      * @return instance the ShutdownMangeLink.
      */
     public static ShutdownManageLink getInstance() {
@@ -102,7 +101,6 @@ public class ShutdownManageLink extends ManagementLink {
 
     /**
      * Gets the icon for this plugin.
-     *
      * @return the icon
      */
     @Override
@@ -113,7 +111,6 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Gets the display name for this plugin on the management page.
      * Varies depending on if lenient shutdown is already enabled or not.
-     *
      * @return display name
      */
     @Override
@@ -126,7 +123,6 @@ public class ShutdownManageLink extends ManagementLink {
 
     /**
      * Gets the url name for this plugin.
-     *
      * @return url name
      */
     @Override
@@ -141,7 +137,6 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Gets the description of this plugin.
      * Varies depending on if lenient shutdown is already enabled or not.
-     *
      * @return description
      */
     @Override
@@ -155,7 +150,6 @@ public class ShutdownManageLink extends ManagementLink {
 
     /**
      * Returns required permission to change the global shutdown mode.
-     *
      * @return Jenkins administer permission.
      */
     @Override
@@ -177,7 +171,6 @@ public class ShutdownManageLink extends ManagementLink {
 
     /**
      * Checks if Jenkins has been put to lenient shutdown mode.
-     *
      * @return true if Jenkins is in lenient shutdown mode, otherwise false
      */
     public boolean isGoingToShutdown() {
