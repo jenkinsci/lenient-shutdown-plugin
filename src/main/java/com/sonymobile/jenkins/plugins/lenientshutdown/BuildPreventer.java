@@ -60,6 +60,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
         boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         boolean isWhitelistedProject = false;
+        boolean isWhiteListedUpStreamProject = false;
 
         if (isGoingToShutdown
                 && item.task instanceof AbstractProject
@@ -70,7 +71,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
             Set<Long> upstreamQueueIds = QueueUtils.getUpstreamQueueIds(item);
             boolean isPermittedByUpStream = shutdownManageLink.isAnyPermittedUpstreamProject(upstreamQueueIds);
-            boolean isWhiteListedUpStreamProject = shutdownManageLink.isAnyWhiteListedUpstreamProject(upstreamQueueIds);
+            isWhiteListedUpStreamProject = shutdownManageLink.isAnyWhiteListedUpstreamProject(upstreamQueueIds);
 
             if (!isPermittedByUpStream && !isWhitelistedProject && !isWhiteListedUpStreamProject) {
                 logger.log(Level.FINE, "Preventing project {0} from running, "
@@ -85,7 +86,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
 
         //Set the project as allowed upstream project if it was not blocked and shutdown enabled:
         if (blockage == null && isGoingToShutdown) {
-            if (isWhitelistedProject) {
+            if (isWhitelistedProject || isWhiteListedUpStreamProject) {
                 shutdownManageLink.addWhiteListedQueueId(item.getId());
             } else {
                 shutdownManageLink.addPermittedUpstreamQueueId(item.getId());

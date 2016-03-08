@@ -579,7 +579,9 @@ public class GlobalLenientShutdownTest {
 
         FreeStyleProject whiteListed = jenkinsRule.createFreeStyleProject("whitelisted");
         FreeStyleProject whiteListedChild = jenkinsRule.createFreeStyleProject("whitelistedchild");
+        FreeStyleProject whiteListedGrandChild = jenkinsRule.createFreeStyleProject("whitelistedgrandchild");
         whiteListed.getPublishersList().add(new BuildTrigger(whiteListedChild.getName(), Result.SUCCESS));
+        whiteListedChild.getPublishersList().add(new BuildTrigger(whiteListedGrandChild.getName(), Result.SUCCESS));
 
         Jenkins.getInstance().rebuildDependencyGraph();
 
@@ -595,7 +597,7 @@ public class GlobalLenientShutdownTest {
 
         whiteListed.scheduleBuild2(0);
 
-        assertSuccessfulBuilds(parent, child, whiteListed, whiteListedChild);
+        assertSuccessfulBuilds(parent, child, whiteListed, whiteListedChild, whiteListedGrandChild);
     }
 
     /**
