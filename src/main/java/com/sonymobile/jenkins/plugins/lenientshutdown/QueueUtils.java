@@ -174,7 +174,11 @@ public final class QueueUtils {
         for (Cause cause : item.getCauses()) {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
-                upstreamProjects.add(upstreamCause.getUpstreamRun().getQueueId());
+                Run<?, ?> run = upstreamCause.getUpstreamRun();
+                upstreamCause.getUpstreamProject();
+                if (run != null) {
+                    upstreamProjects.add(run.getQueueId());
+                }
             }
         }
         return Collections.unmodifiableSet(upstreamProjects);
