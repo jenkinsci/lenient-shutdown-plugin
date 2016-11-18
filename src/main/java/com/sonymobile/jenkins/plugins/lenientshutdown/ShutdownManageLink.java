@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.servlet.ServletException;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.stapler.StaplerRequest;
@@ -43,7 +42,6 @@ import hudson.Extension;
 import jenkins.model.Jenkins;
 import hudson.model.ManagementLink;
 import hudson.security.Permission;
-import net.sf.json.JSONObject;
 
 /**
  * Adds a link on the manage Jenkins page for lenient shutdown.
@@ -88,7 +86,9 @@ public class ShutdownManageLink extends ManagementLink {
      * @return instance the ShutdownMangeLink.
      */
     public static ShutdownManageLink getInstance() {
-        @SuppressWarnings("deprecation")
+        if (instance != null) {
+            return instance;
+        }
         List<ManagementLink> list = Jenkins.getInstance().getManagementLinks();
         for (ManagementLink link : list) {
             if (link instanceof ShutdownManageLink) {
@@ -162,11 +162,7 @@ public class ShutdownManageLink extends ManagementLink {
      */
     public void toggleGoingToShutdown() {
         isGoingToShutdown = !isGoingToShutdown;
-        if (isGoingToShutdown) {
-            analyzing = true;
-        } else {
-            analyzing = false;
-        }
+        analyzing = isGoingToShutdown;
     }
 
     /**
@@ -186,37 +182,18 @@ public class ShutdownManageLink extends ManagementLink {
         return ShutdownConfiguration.getInstance();
     }
 
+
     /**
-     * Method triggered when pressing the cancel shutdown button.
-     * Deactivates lenient shutdown.
+     * Method triggered when pressing the management link.
+     * Toggles the lenient shutdown mode.
      *
      * @param req StaplerRequest
      * @param rsp StaplerResponse
      * @throws IOException if unable to redirect
      */
-    public synchronized void doCancelLenientShutdown(StaplerRequest req, StaplerResponse rsp)
-            throws IOException {
+    public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
         Jenkins.getInstance().checkPermission(getRequiredPermission());
 
-        performToggleGoingToShutdown();
-        rsp.sendRedirect2(req.getContextPath() + "/manage");
-    }
-
-    /**
-     * Method triggered when pressing the shutdown leniently button.
-     * Activates lenient shutdown mode.
-     *
-     * @param req StaplerRequest
-     * @param rsp StaplerResponse
-     * @throws IOException if unable to redirect
-     * @throws ServletException if unable to get submitted form
-     */
-
-    public synchronized void doLenientShutdown(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, ServletException {
-        Jenkins.getInstance().checkPermission(getRequiredPermission());
-        JSONObject src = req.getSubmittedForm();
-        getConfiguration().setAllowAllQueuedItems(src.getBoolean("allowAllQueuedItems"));
         performToggleGoingToShutdown();
         rsp.sendRedirect2(req.getContextPath() + "/manage");
     }

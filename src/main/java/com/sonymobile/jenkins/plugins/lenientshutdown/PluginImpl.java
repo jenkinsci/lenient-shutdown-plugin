@@ -34,6 +34,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import hudson.Plugin;
 import hudson.model.Computer;
@@ -143,6 +145,7 @@ public class PluginImpl extends Plugin {
      * @param nodeName the specific slave name to check for
      * @return true if at least one of the projects is white listed
      */
+    @Restricted(NoExternalUse.class)
     public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
         boolean isPermitted = false;
         Set<Long> permittedQueueItemIds = getPermittedQueuedItemIds(nodeName);
@@ -160,6 +163,7 @@ public class PluginImpl extends Plugin {
      * @param nodeName the specific slave name to check for
      * @return true if it was queued
      */
+    @Restricted(NoExternalUse.class)
     public boolean wasAlreadyQueued(long id, String nodeName) {
         Set<Long> alreadyQueuedItemIds = getPermittedQueuedItemIds(nodeName);
         return alreadyQueuedItemIds.contains(id);
@@ -170,6 +174,7 @@ public class PluginImpl extends Plugin {
      * @param id the queue id to add
      * @param nodeName the slave name to add the permitted project for
      */
+    @Restricted(NoExternalUse.class)
     public void addPermittedUpstreamQueueId(long id, String nodeName) {
         Set<Long> permittedUpstreamProjectNames = getPermittedQueuedItemIds(nodeName);
         permittedUpstreamProjectNames.add(id);
@@ -203,6 +208,7 @@ public class PluginImpl extends Plugin {
      * @param nodeName the node to get specific queue items for
      * @return set of queued item ids
      */
+    @Restricted(NoExternalUse.class)
     public synchronized Set<Long> getPermittedQueuedItemIds(String nodeName) {
         Set<Long> permittedQueuedItemIds = permittedSlaveQueuedItemIds.get(nodeName);
         if (permittedQueuedItemIds == null) {

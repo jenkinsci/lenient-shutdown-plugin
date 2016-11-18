@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright (c) 2016 Sony Mobile Communications Inc. All rights reserved.
+ *  Copyright (c) 2016 Markus Winter. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal

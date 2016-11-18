@@ -1,4 +1,4 @@
-<!--
+/*
  *  The MIT License
  *
  *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
@@ -21,27 +21,26 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  *
--->
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:section title="Lenient Shutdown Configuration">
+*/
 
-    <f:entry title="Shutdown message" field="shutdownMessage">
-        <f:textbox/>
-    </f:entry>
-    
-    <f:entry title="Allow all queued items"
-    		field="allowAllQueuedItems">
-    	<f:checkbox/>
-    </f:entry>
+f=namespace("lib/form")
 
-    <f:entry title="Allow white listed projects"
-    		field="allowWhiteListedProjects">
-    	<f:checkbox/>
-    </f:entry>
-
-    <f:entry title="White listed projects">
-    	<f:textarea name="whiteListedProjects" value="${instance.whiteListedProjectsText}" />
-    </f:entry>
-  </f:section>
-</j:jelly>
+f.section(title:_("Lenient Shutdown")) {
+    f.entry(field: 'shutdownMessage',
+            title:_("Shutdown message"),
+            description:_("This message will be displayed in the header on all " +
+                    "pages when lenient shutdown mode is activated")) {
+        f.textbox()
+    }
+    f.entry(field: 'allowAllQueuedItems', title:_("Allow all queued items")) {
+    	f.checkbox()
+    }
+    f.entry(field: 'allowWhiteListedProjects', title:_("Allow white listed projects")) {
+    	f.checkbox()
+    }
+    f.entry(field:'whiteListedProjects', 
+    		title:_("White listed projects"),
+    		description:_("One entry per line.")) {
+    	f.textarea(value:instance.whiteListedProjectsText)
+    }
+}

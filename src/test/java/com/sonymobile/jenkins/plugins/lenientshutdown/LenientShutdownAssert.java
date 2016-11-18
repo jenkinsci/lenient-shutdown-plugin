@@ -110,5 +110,4 @@ public final class LenientShutdownAssert {
         assertTrue("Slave should shut down after builds are complete",
                 slave.toComputer().isTemporarilyOffline());
     }
-
 }
