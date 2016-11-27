@@ -87,9 +87,6 @@ public class ShutdownManageLink extends ManagementLink {
      * @return instance the ShutdownMangeLink.
      */
     public static ShutdownManageLink getInstance() {
-        if (instance != null) {
-            return instance;
-        }
         List<ManagementLink> list = Jenkins.getInstance().getManagementLinks();
         for (ManagementLink link : list) {
             if (link instanceof ShutdownManageLink) {
