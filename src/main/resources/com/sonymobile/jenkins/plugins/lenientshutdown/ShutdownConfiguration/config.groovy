@@ -20,15 +20,27 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
- */
-
+ *
+*/
 
 f=namespace("lib/form")
 
 f.section(title:_("Lenient Shutdown")) {
-    f.entry(title:_("Shutdown message"),
+    f.entry(field: 'shutdownMessage',
+            title:_("Shutdown message"),
             description:_("This message will be displayed in the header on all " +
-                    "pages when lenient shutdown mode is activated"), field: "shutdownMessage") {
+                    "pages when lenient shutdown mode is activated")) {
         f.textbox()
+    }
+    f.entry(field: 'allowAllQueuedItems', title:_("Allow all queued items")) {
+    	f.checkbox()
+    }
+    f.entry(field: 'allowWhiteListedProjects', title:_("Allow white listed projects")) {
+    	f.checkbox()
+    }
+    f.entry(field:'whiteListedProjects', 
+    		title:_("White listed projects"),
+    		description:_("One entry per line.")) {
+    	f.textarea(value:instance.whiteListedProjectsText)
     }
 }

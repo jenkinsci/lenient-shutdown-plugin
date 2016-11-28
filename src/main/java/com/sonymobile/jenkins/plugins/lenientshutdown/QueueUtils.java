@@ -2,6 +2,7 @@
  *  The MIT License
  *
  *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
+ *  Copyright (c) 2016 Markus Winter. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +25,12 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
@@ -31,15 +38,9 @@ import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Node;
 import hudson.model.Queue;
+import hudson.model.Run;
+import hudson.model.Queue.BuildableItem;
 import jenkins.model.Jenkins;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static hudson.model.Queue.BuildableItem;
 
 /**
  * Utility class for getting information about the build queue and ongoing builds.
@@ -54,54 +55,29 @@ public final class QueueUtils {
     private QueueUtils() { }
 
     /**
-     * Returns the set of all project names that are in the build queue
-     * AND have a completed upstream project.
-     * Note: This method locks the queue; don't use excessively.
-     * @return set of queued and permitted project names
-     */
-    public static Set<String> getPermittedQueueProjectNames() {
-        return getPermittedQueueProjectNames(null);
-    }
-
-    /**
-     * Returns the set of queued project names that are bound to a specific node
-     * AND have a completed upstream project.
-     * Note: This method locks the queue; don't use excessively.
-     * @param nodeName the node name to check projects for, null is interpreted as no restriction
-     * @return set of queued and permitted project names
-     */
-    public static Set<String> getPermittedQueueProjectNames(String nodeName) {
-        Set<String> queuedProjects = new HashSet<String>();
-        Queue queueInstance = Queue.getInstance();
-        for (int id : getPermittedQueueItemIds(nodeName)) {
-            Queue.Item item = queueInstance.getItem(id);
-            if (item.task instanceof AbstractProject) {
-                AbstractProject project = (AbstractProject)item.task;
-                queuedProjects.add(project.getFullName());
-            }
-        }
-        return Collections.unmodifiableSet(queuedProjects);
-    }
-
-    /**
-     * Returns the set of item ids for items that are in the build queue
-     * AND have a completed upstream project if they are a project build.
+     * Returns the set of queue ids for items that are in the build queue.
+     * Depending on the configuration this is either just those that have a completed upstream
+     * project if they are a project build or all entries that are currently in the queue.
      * Note: This method locks the queue; don't use excessively.
      * @return set of item ids
      */
-    public static Set<Integer> getPermittedQueueItemIds() {
-        Set<Integer> queuedIds = new HashSet<Integer>();
+    public static Set<Long> getPermittedQueueItemIds() {
+        Set<Long> queuedIds = new HashSet<Long>();
+        boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
         for (Queue.Item item : Queue.getInstance().getItems()) {
             if (item.task instanceof AbstractProject) {
-                //Only add if it has a completed upstream build:
-                for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
-                    if (!upstreamBuild.isBuilding()) {
-                        queuedIds.add(item.id);
-                        break;
+                if (allowAllQueuedItems) {
+                    queuedIds.add(item.getId());
+                } else {
+                    for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
+                        if (!upstreamBuild.isBuilding()) {
+                            queuedIds.add(item.getId());
+                            break;
+                        }
                     }
                 }
             } else {
-                queuedIds.add(item.id);
+                queuedIds.add(item.getId());
             }
         }
         return Collections.unmodifiableSet(queuedIds);
@@ -114,20 +90,20 @@ public final class QueueUtils {
      * @param nodeName the node name to check allowed ids for
      * @return set of permitted item ids
      */
-    public static Set<Integer> getPermittedQueueItemIds(String nodeName) {
-        Set<Integer> permittedQueueItemIds = new HashSet<Integer>();
+    public static Set<Long> getPermittedQueueItemIds(String nodeName) {
+        Set<Long> permittedQueueItemIds = new HashSet<Long>();
         if (nodeName == null) {
             permittedQueueItemIds.addAll(getPermittedQueueItemIds());
         } else {
             Queue queueInstance = Queue.getInstance();
 
             Node node = Jenkins.getInstance().getNode(nodeName);
-            if (nodeName.isEmpty()) { //Special case when building on master
+            if (nodeName.isEmpty()) { // Special case when building on master
                 node = Jenkins.getInstance();
             }
 
             if (node != null) {
-                for (int id : getPermittedQueueItemIds()) {
+                for (long id : getPermittedQueueItemIds()) {
                     Queue.Item item = queueInstance.getItem(id);
                     if (item != null && !canOtherNodeBuild(item, node)) {
                         permittedQueueItemIds.add(id);
@@ -140,31 +116,33 @@ public final class QueueUtils {
     }
 
     /**
-     * Returns the set of project names that have an ongoing build.
-     * @return set of running project names
+     * Return a set of queue ids of all currently running builds.
+     *
+     * @return set of running queue ids
      */
-    public static Set<String> getRunningProjectNames() {
-        Set<String> runningProjects = new HashSet<String>();
+    public static Set<Long> getRunningProjectQueueIds() {
+        Set<Long> runningProjects = new HashSet<Long>();
 
         List<Node> allNodes = new ArrayList<Node>(Jenkins.getInstance().getNodes());
         allNodes.add(Jenkins.getInstance());
 
         for (Node node : allNodes) {
-            runningProjects.addAll(getRunningProjectNames(node.getNodeName()));
+            runningProjects.addAll(getRunninProjectsQueueIDs(node.getNodeName()));
         }
         return Collections.unmodifiableSet(runningProjects);
     }
 
     /**
-     * Returns the set of project names that have an ongoing build on a specific node.
+     * Returns a set of queue ids of all currently running builds on a node.
+     *
      * @param nodeName the node name to list running projects for
-     * @return set of running project names
+     * @return set of queue ids
      */
-    public static Set<String> getRunningProjectNames(String nodeName) {
-        Set<String> runningProjects = new HashSet<String>();
+    public static Set<Long> getRunninProjectsQueueIDs(String nodeName) {
+        Set<Long> runningProjects = new HashSet<Long>();
 
         Node node = Jenkins.getInstance().getNode(nodeName);
-        if (nodeName.isEmpty()) { //Special case when building on master
+        if (nodeName.isEmpty()) { // Special case when building on master
             node = Jenkins.getInstance();
         }
 
@@ -175,10 +153,10 @@ public final class QueueUtils {
                 executors.addAll(computer.getOneOffExecutors());
 
                 for (Executor executor : executors) {
-                    Queue.Executable executable =  executor.getCurrentExecutable();
+                    Queue.Executable executable = executor.getCurrentExecutable();
                     if (executable instanceof AbstractBuild) {
                         AbstractBuild build = (AbstractBuild)executable;
-                        runningProjects.add(build.getProject().getFullName());
+                        runningProjects.add(build.getQueueId());
                     }
                 }
             }
@@ -188,16 +166,20 @@ public final class QueueUtils {
     }
 
     /**
-     * Gets the names of all upstream projects that triggered argument queue item.
+     * Gets the queue ids of all upstream projects that triggered argument queue item.
      * @param item the queue item to find upstream projects for
      * @return set of upstream project names
      */
-    public static Set<String> getUpstreamProjectNames(Queue.Item item) {
-        Set<String> upstreamProjects = new HashSet<String>();
+    public static Set<Long> getUpstreamQueueIds(Queue.Item item) {
+        Set<Long> upstreamProjects = new HashSet<Long>();
         for (Cause cause : item.getCauses()) {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
-                upstreamProjects.add(upstreamCause.getUpstreamProject());
+                Run<?, ?> run = upstreamCause.getUpstreamRun();
+                upstreamCause.getUpstreamProject();
+                if (run != null) {
+                    upstreamProjects.add(run.getQueueId());
+                }
             }
         }
         return Collections.unmodifiableSet(upstreamProjects);
@@ -213,14 +195,10 @@ public final class QueueUtils {
         for (Cause cause : item.getCauses()) {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
-                String upstreamProjectName = upstreamCause.getUpstreamProject();
-                AbstractProject upstreamProject = (AbstractProject)Jenkins.getInstance()
-                        .getItemByFullName(upstreamProjectName);
+                Run<?, ?> upstreamRun = upstreamCause.getUpstreamRun();
 
-                if (upstreamProject != null) {
-                    AbstractBuild upstreamBuild = upstreamProject
-                            .getBuildByNumber(upstreamCause.getUpstreamBuild());
-                    upstreamBuilds.add(upstreamBuild);
+                if (upstreamRun != null && upstreamRun instanceof AbstractBuild) {
+                    upstreamBuilds.add((AbstractBuild)upstreamRun);
                 }
             }
         }
@@ -238,7 +216,7 @@ public final class QueueUtils {
         boolean otherNodeCanBuild = false;
 
         if (item instanceof BuildableItem) {
-            //Item is ready to build, we can make a full check if other slaves can build it.
+            // Item is ready to build, we can make a full check if other slaves can build it.
             BuildableItem buildableItem = (BuildableItem)item;
             Set<Node> allNodes = new HashSet<Node>(Jenkins.getInstance().getNodes());
             allNodes.add(Jenkins.getInstance());
@@ -258,8 +236,7 @@ public final class QueueUtils {
             otherNodeCanBuild = true;
             for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
                 boolean isUpstreamFinished = !upstreamBuild.isBuilding();
-                if (isUpstreamFinished
-                        && upstreamBuild.getBuiltOnStr().equals(node.getNodeName())) {
+                if (isUpstreamFinished && upstreamBuild.getBuiltOnStr().equals(node.getNodeName())) {
                     otherNodeCanBuild = false;
                     break;
                 }
@@ -307,6 +284,4 @@ public final class QueueUtils {
         }
         return hasExclusive;
     }
-
-
-}
+ }

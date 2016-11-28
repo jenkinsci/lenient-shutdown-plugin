@@ -2,6 +2,7 @@
  *  The MIT License
  *
  *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
+ *  Copyright (c) 2016 Markus Winter. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -22,17 +23,7 @@
  *  THE SOFTWARE.
  */
 
-
 package com.sonymobile.jenkins.plugins.lenientshutdown;
-
-import hudson.Plugin;
-import hudson.model.AbstractProject;
-import hudson.model.Computer;
-import hudson.model.Node;
-import hudson.model.User;
-import hudson.util.CopyOnWriteMap;
-import jenkins.model.Jenkins;
-import org.apache.commons.collections.CollectionUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +33,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
+import hudson.Plugin;
+import hudson.model.Computer;
+import hudson.model.Node;
+import hudson.model.User;
+import hudson.util.CopyOnWriteMap;
+import jenkins.model.Jenkins;
 
 /**
  * Plugin base class.
@@ -61,16 +63,10 @@ public class PluginImpl extends Plugin {
     private transient Map<String, User> userTriggers = new CopyOnWriteMap.Hash<String, User>();
 
     /**
-     * Node name -> Set of project names that are allowed to trigger a downstream
-     */
-    private Map<String, Set<String>> permittedSlaveUpstreamProjects = Collections.synchronizedMap(
-            new HashMap<String, Set<String>>());
-
-    /**
      * Node name -> Set of queue item ids that are allowed to build
      */
-    private Map<String, Set<Integer>> permittedSlaveQueuedItemIds = Collections.synchronizedMap(
-            new HashMap<String, Set<Integer>>());
+    private Map<String, Set<Long>> permittedSlaveQueuedItemIds = Collections.synchronizedMap(
+            new HashMap<String, Set<Long>>());
 
     /**
      * Returns this singleton instance.
@@ -127,15 +123,10 @@ public class PluginImpl extends Plugin {
             service.submit(new Runnable() {
                 @Override
                 public void run() {
-                    final String nodeName = node.getNodeName();
-                    Set<String> permittedUpstreamProjectNames = getPermittedUpstreamProjects(nodeName);
-                    permittedUpstreamProjectNames.clear();
-                    permittedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames(nodeName));
-                    permittedUpstreamProjectNames.addAll(QueueUtils.getPermittedQueueProjectNames(nodeName));
-
-                    Set<Integer> alreadyQueuedItemIds = getAlreadyQueuedItemIds(nodeName);
-                    alreadyQueuedItemIds.clear();
-                    alreadyQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds(nodeName));
+                    Set<Long> permittedQueuedItemIds = getPermittedQueuedItemIds(nodeName);
+                    permittedQueuedItemIds.clear();
+                    permittedQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds(nodeName));
+                    permittedQueuedItemIds.addAll(QueueUtils.getRunninProjectsQueueIDs(nodeName));
                 }
             });
 
@@ -151,15 +142,16 @@ public class PluginImpl extends Plugin {
     /**
      * Checks if any of the project names in argument list are marked as white listed upstream
      * projects for a specific slave.
-     * @param projectNames the list of project names to check
+     * @param queueItemsIds the list of project names to check
      * @param nodeName the specific slave name to check for
      * @return true if at least one of the projects is white listed
      */
-    public boolean isAnyPermittedUpstreamProject(Set<String> projectNames, String nodeName) {
+    @Restricted(NoExternalUse.class)
+    public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
         boolean isPermitted = false;
-        Set<String> permittedProjectNames = getPermittedUpstreamProjects(nodeName);
-        if (permittedProjectNames != null) {
-            Collection intersection = CollectionUtils.intersection(projectNames, permittedProjectNames);
+        Set<Long> permittedQueueItemIds = getPermittedQueuedItemIds(nodeName);
+        if (permittedQueueItemIds != null) {
+            Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
             isPermitted = !intersection.isEmpty();
         }
         return isPermitted;
@@ -172,20 +164,21 @@ public class PluginImpl extends Plugin {
      * @param nodeName the specific slave name to check for
      * @return true if it was queued
      */
-    public boolean wasAlreadyQueued(int id, String nodeName) {
-        Set<Integer> alreadyQueuedItemIds = getAlreadyQueuedItemIds(nodeName);
+    @Restricted(NoExternalUse.class)
+    public boolean wasAlreadyQueued(long id, String nodeName) {
+        Set<Long> alreadyQueuedItemIds = getPermittedQueuedItemIds(nodeName);
         return alreadyQueuedItemIds.contains(id);
     }
 
-
     /**
      * Adds argument project as a permitted upstream project for a specific slave.
-     * @param project the project to add
+     * @param id the queue id to add
      * @param nodeName the slave name to add the permitted project for
      */
-    public void addPermittedUpstreamProject(AbstractProject project, String nodeName) {
-        Set<String> permittedUpstreamProjectNames = getPermittedUpstreamProjects(nodeName);
-        permittedUpstreamProjectNames.add(project.getFullName());
+    @Restricted(NoExternalUse.class)
+    public void addPermittedUpstreamQueueId(long id, String nodeName) {
+        Set<Long> permittedUpstreamProjectNames = getPermittedQueuedItemIds(nodeName);
+        permittedUpstreamProjectNames.add(id);
     }
 
     /**
@@ -211,33 +204,19 @@ public class PluginImpl extends Plugin {
     }
 
     /**
-     * Gets the set of permitted upstream projects for a specific node.
-     * @param nodeName node name to list permitted upstreams for
-     * @return set of permitted upstream projects.
-     */
-    public synchronized Set<String> getPermittedUpstreamProjects(String nodeName) {
-        Set<String> permittedUpstreamProjects = permittedSlaveUpstreamProjects.get(nodeName);
-        if (permittedUpstreamProjects == null) {
-            permittedUpstreamProjects = new HashSet<String>();
-            permittedSlaveUpstreamProjects.put(nodeName, permittedUpstreamProjects);
-        }
-        return permittedUpstreamProjects;
-    }
-
-    /**
      * Gets all item ids that were queued and could only be build on
      * the argument specific slave when it was set to lenient offline mode.
      * @param nodeName the node to get specific queue items for
      * @return set of queued item ids
      */
-    public synchronized Set<Integer> getAlreadyQueuedItemIds(String nodeName) {
-        Set<Integer> alreadyQueuedItemIds = permittedSlaveQueuedItemIds.get(nodeName);
-        if (alreadyQueuedItemIds == null) {
-            alreadyQueuedItemIds = new HashSet<Integer>();
-            permittedSlaveQueuedItemIds.put(nodeName, alreadyQueuedItemIds);
+    @Restricted(NoExternalUse.class)
+    public synchronized Set<Long> getPermittedQueuedItemIds(String nodeName) {
+        Set<Long> permittedQueuedItemIds = permittedSlaveQueuedItemIds.get(nodeName);
+        if (permittedQueuedItemIds == null) {
+            permittedQueuedItemIds = new HashSet<Long>();
+            permittedSlaveQueuedItemIds.put(nodeName, permittedQueuedItemIds);
         }
-        return alreadyQueuedItemIds;
+        return permittedQueuedItemIds;
     }
-
 
 }

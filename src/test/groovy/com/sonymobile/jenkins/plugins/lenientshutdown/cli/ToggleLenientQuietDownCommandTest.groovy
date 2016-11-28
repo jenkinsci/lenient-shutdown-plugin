@@ -25,6 +25,7 @@ package com.sonymobile.jenkins.plugins.lenientshutdown.cli
 
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownConfiguration
 import org.junit.Test
 
 /**
@@ -63,5 +64,41 @@ class ToggleLenientQuietDownCommandTest extends BaseCliTest {
                 "Command did not exit correctly"
         assert !ShutdownManageLink.instance.isGoingToShutdown() : "Should be back online"
 
+    }
+
+    /**
+     * Tests the command with the --allow-queued option set 
+     */
+    @Test
+    void testAllowAllQueuedItemsEnabled() {
+
+        assert cmd("toggle-lenient-quiet-down", "--allow-queued").execute().waitFor() == 0 :
+                "Command did not exit correctly"
+        assert ShutdownManageLink.instance.isGoingToShutdown() : "Should be shutting down now"
+        assert ShutdownConfiguration.instance.isAllowAllQueuedItems() : "All queued items should be allowed"
+    }
+
+    /**
+     * Tests the command with the --allow-whitelisted option
+     */
+    @Test
+    void testAllowWhiteListedEnabled() {
+
+        assert cmd("toggle-lenient-quiet-down", "--allow-whitelisted").execute().waitFor() == 0 :
+                "Command did not exit correctly"
+        assert ShutdownManageLink.instance.isGoingToShutdown() : "Should be shutting down now"
+        assert ShutdownConfiguration.instance.isAllowWhiteListedProjects() : "White listed projects should be allowed"
+    }
+
+    /**
+     * Tests the command with the -p option 
+     */
+    @Test
+    void testWhiteListed() {
+
+        assert cmd("toggle-lenient-quiet-down", "-p", "whitelisted;somename;anotherone").execute().waitFor() == 0 :
+                "Command did not exit correctly"
+        assert ShutdownManageLink.instance.isGoingToShutdown() : "Should be shutting down now"
+        assert ShutdownConfiguration.instance.getWhiteListedProjects().size() == 3 : "White listed projects size should be 3"
     }
 }

@@ -3,12 +3,12 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.554</version>
+        <version>1.601</version>
     </parent>
 
     <groupId>com.sonymobile.jenkins.plugins.lenientshutdown</groupId>
     <artifactId>lenientshutdown</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <name>Lenient shutdown plugin</name>
     <description>This plugin allows administrators to put Jenkins into lenient shutdown mode.</description>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Lenient+shutdown+plugin</url>
@@ -63,8 +63,8 @@
 
     <repositories>
         <repository>
-            <id>maven.jenkins-ci.org</id>
-            <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
         </repository>
         <repository>
             <id>powermock-repo</id>
@@ -74,8 +74,8 @@
 
     <pluginRepositories>
         <pluginRepository>
-            <id>maven.jenkins-ci.org</id>
-            <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -109,7 +109,7 @@
                     <target>1.6</target>
                 </configuration>
             </plugin>
-            <plugin>
+             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>2.11</version>
@@ -142,7 +142,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.4.0</version>
+                <version>3.0.3</version>
                 <configuration>
                     <xmlOutput>true</xmlOutput>
                     <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>

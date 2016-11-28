@@ -2,6 +2,7 @@
  *  The MIT License
  *
  *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
+ *  Copyright (c) 2016 Markus Winter. All rights reserved.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +25,6 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-import hudson.Extension;
-import hudson.model.AbstractProject;
-import hudson.model.Hudson;
-import hudson.model.ManagementLink;
-import hudson.security.Permission;
-import jenkins.model.Jenkins;
-import org.apache.commons.collections.CollectionUtils;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,20 +34,42 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
+import org.apache.commons.collections.CollectionUtils;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
+import hudson.Extension;
+import jenkins.model.Jenkins;
+import hudson.model.ManagementLink;
+import hudson.security.Permission;
+
 /**
-* Adds a link on the manage Jenkins page for lenient shutdown.
+ * Adds a link on the manage Jenkins page for lenient shutdown.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
-*/
+ */
 @Extension
-public class ShutdownManageLink extends ManagementLink  {
+public class ShutdownManageLink extends ManagementLink {
 
-    private Set<String> permittedUpstreamProjectNames = Collections.synchronizedSet(
-            new HashSet<String>());
-    private Set<Integer> alreadyQueuedItemIds = Collections.synchronizedSet(
-            new HashSet<Integer>());
+    /**
+     * The list of queue ids, that belong to projects that where running at time of lenient shutdown
+     * and any of the downstream builds.
+     */
+    private Set<Long> permittedQueueIds = Collections.synchronizedSet(new HashSet<Long>());
+
+    /**
+     * The list of queue ids that correspond to running builds of permitted queue ids
+     */
+    private Set<Long> activeQueueIds = Collections.synchronizedSet(new HashSet<Long>());
+
+    /**
+     * The list of queue ids belonging to white listed projects runs
+     */
+    private Set<Long> whiteListedQueueIds = Collections.synchronizedSet(new HashSet<Long>());
 
     private boolean isGoingToShutdown;
+    private boolean analyzing;
     private static ShutdownManageLink instance;
 
     /**
@@ -74,7 +87,7 @@ public class ShutdownManageLink extends ManagementLink  {
      * @return instance the ShutdownMangeLink.
      */
     public static ShutdownManageLink getInstance() {
-        List<ManagementLink> list = Hudson.getInstance().getManagementLinks();
+        List<ManagementLink> list = Jenkins.getInstance().getManagementLinks();
         for (ManagementLink link : list) {
             if (link instanceof ShutdownManageLink) {
                 instance = (ShutdownManageLink)link;
@@ -112,7 +125,11 @@ public class ShutdownManageLink extends ManagementLink  {
      */
     @Override
     public String getUrlName() {
-        return URL;
+        if (isGoingToShutdown) {
+            return "cancelLenientShutdown";
+        } else {
+            return URL;
+        }
     }
 
     /**
@@ -143,6 +160,7 @@ public class ShutdownManageLink extends ManagementLink  {
      */
     public void toggleGoingToShutdown() {
         isGoingToShutdown = !isGoingToShutdown;
+        analyzing = isGoingToShutdown;
     }
 
     /**
@@ -154,8 +172,19 @@ public class ShutdownManageLink extends ManagementLink  {
     }
 
     /**
+     * The singleton instance registered in the Jenkins extension list.
+     *
+     * @return the instance
+     */
+    public ShutdownConfiguration getConfiguration() {
+        return ShutdownConfiguration.getInstance();
+    }
+
+
+    /**
      * Method triggered when pressing the management link.
      * Toggles the lenient shutdown mode.
+     *
      * @param req StaplerRequest
      * @param rsp StaplerResponse
      * @throws IOException if unable to redirect
@@ -169,6 +198,7 @@ public class ShutdownManageLink extends ManagementLink  {
 
     /**
      * Toggles the flag and prepares for lenient shutdown if needed.
+     *
      */
     public void performToggleGoingToShutdown() {
         toggleGoingToShutdown();
@@ -177,42 +207,103 @@ public class ShutdownManageLink extends ManagementLink  {
             service.submit(new Runnable() {
                 @Override
                 public void run() {
-                    permittedUpstreamProjectNames.clear();
-                    permittedUpstreamProjectNames.addAll(QueueUtils.getRunningProjectNames());
-                    permittedUpstreamProjectNames.addAll(QueueUtils.getPermittedQueueProjectNames());
-
-                    alreadyQueuedItemIds.clear();
-                    alreadyQueuedItemIds.addAll(QueueUtils.getPermittedQueueItemIds());
+                    permittedQueueIds.clear();
+                    activeQueueIds.clear();
+                    whiteListedQueueIds.clear();
+                    permittedQueueIds.addAll(QueueUtils.getPermittedQueueItemIds());
+                    permittedQueueIds.addAll(QueueUtils.getRunningProjectQueueIds());
+                    activeQueueIds.addAll(permittedQueueIds);
+                    analyzing = false;
                 }
             });
         }
     }
 
     /**
-     * Checks if any of the project names in argument list are marked as white listed upstream projects.
-     * @param projectNames the list of project names to check
+     * Helper method for testing.
+     *
+     * @return true if analysis, which projects are in the queue and running, is still ongoing, false
+     *         otherwise
+     */
+    public boolean isAnalyzing() {
+        return analyzing;
+    }
+
+    /**
+     * Checks if any of the queue ids in argument list is in the list of permitted queue ids.
+     *
+     * @param queueIds the list of queue ids to check
      * @return true if at least one of the projects is white listed
      */
-    public boolean isAnyPermittedUpstreamProject(Set<String> projectNames) {
-        Collection intersection = CollectionUtils.intersection(projectNames, permittedUpstreamProjectNames);
+    public boolean isAnyPermittedUpstreamProject(Set<Long> queueIds) {
+        Collection<?> intersection = CollectionUtils.intersection(queueIds, permittedQueueIds);
         return !intersection.isEmpty();
     }
 
     /**
-     * Adds argument project to the set of white listed upstream project names.
-     * @param project the project to add to white list
+     * Checks if any of the queue ids in argument list is coming from a white listed project run.
+     *
+     * @param queueIds the list of queue ids to check
+     * @return true if at least one of the projects is white listed
      */
-    public void addPermittedUpstreamProject(AbstractProject project) {
-        permittedUpstreamProjectNames.add(project.getFullName());
+    public boolean isAnyWhiteListedUpstreamProject(Set<Long> queueIds) {
+        Collection<?> intersection = CollectionUtils.intersection(queueIds, whiteListedQueueIds);
+        return !intersection.isEmpty();
     }
 
     /**
-     * Returns true if argument queue item was queued when lenient shutdown was activated.
+     * Checks whether there are still any permitted builds running.
+     *
+     * @return true if a permitted build is still running
+     */
+    public boolean isActiveQueueIds() {
+        return !activeQueueIds.isEmpty();
+    }
+
+    /**
+     * Adds the queue id of a permitted build to the active queue ids.
+     *
+     * @param id the queue id to add
+     */
+    public void addActiveQueueId(long id) {
+        activeQueueIds.add(id);
+    }
+
+    /**
+     * Removes the queue id of a permitted build from the active queue ids.
+     * This is triggered when the build is finished.
+     *
+     * @param id the queue id to remove
+     */
+    public void removeActiveQueueId(long id) {
+        activeQueueIds.remove(id);
+    }
+
+    /**
+     * Adds a queue id to the set of permitted upstream queue ids.
+     *
+     * @param id the queue id to add to white list
+     */
+    public void addPermittedUpstreamQueueId(long id) {
+        permittedQueueIds.add(id);
+    }
+
+    /**
+     * Returns true if id is a permitted queue id.
+     *
      * @param id the queue item id to check for
      * @return true if it was queued
      */
-    public boolean wasAlreadyQueued(int id) {
-        return alreadyQueuedItemIds.contains(id);
+    public boolean isPermittedQueueId(long id) {
+        return permittedQueueIds.contains(id);
     }
 
+    /**
+     * Adds the queue id to the set of white listed queue ids.
+     *
+     * @param id the queue id to add
+     */
+    public void addWhiteListedQueueId(long id) {
+        whiteListedQueueIds.add(id);
+    }
 }
