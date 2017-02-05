@@ -64,7 +64,9 @@ public final class QueueUtils {
     public static Set<Long> getPermittedQueueItemIds() {
         Set<Long> queuedIds = new HashSet<Long>();
         boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
-        for (Queue.Item item : Queue.getInstance().getItems()) {
+        Queue.Item[] items = ShutdownManageLink.getInstance().getQueueItems();
+
+        for (Queue.Item item : items) {
             if (item.task instanceof AbstractProject) {
                 if (allowAllQueuedItems) {
                     queuedIds.add(item.getId());

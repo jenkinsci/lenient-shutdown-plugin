@@ -34,15 +34,15 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import hudson.Extension;
-import jenkins.model.Jenkins;
 import hudson.model.ManagementLink;
+import hudson.model.Queue;
 import hudson.security.Permission;
+import jenkins.model.Jenkins;
 
 /**
  * Adds a link on the manage Jenkins page for lenient shutdown.
@@ -71,6 +71,8 @@ public class ShutdownManageLink extends ManagementLink {
     private boolean isGoingToShutdown;
     private boolean analyzing;
     private static ShutdownManageLink instance;
+
+    Queue.Item[] items = null;
 
     /**
      * URL to the plugin.
@@ -196,6 +198,20 @@ public class ShutdownManageLink extends ManagementLink {
         rsp.sendRedirect2(req.getContextPath() + "/manage");
     }
 
+
+    /**
+     * Helper method to get the queue  in QueueUtils
+     * items must be obtained before the Runnable is called.
+     *
+     * @return the queue items
+     */
+    Queue.Item[] getQueueItems() {
+        if (items == null) {
+           items = Queue.getInstance().getItems();
+        }
+        return items;
+    }
+
     /**
      * Toggles the flag and prepares for lenient shutdown if needed.
      *
@@ -203,6 +219,8 @@ public class ShutdownManageLink extends ManagementLink {
     public void performToggleGoingToShutdown() {
         toggleGoingToShutdown();
         if (isGoingToShutdown()) {
+            items = Queue.getInstance().getItems();
+
             ExecutorService service = Executors.newSingleThreadExecutor();
             service.submit(new Runnable() {
                 @Override
