@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.601</version>
+        <version>1.607</version>
     </parent>
 
     <groupId>com.sonymobile.jenkins.plugins.lenientshutdown</groupId>
@@ -221,6 +221,12 @@
             <version>2.25</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-job</artifactId>
+            <version>1.15</version>
+            <scope>test</scope>
+        </dependency>        
     </dependencies>
 
     <distributionManagement>

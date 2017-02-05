@@ -35,6 +35,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Cause;
 import hudson.model.Computer;
 import hudson.model.Executor;
+import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Run;
@@ -65,7 +66,7 @@ public final class QueueUtils {
         boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
         Queue.Item[] items = ShutdownManageLink.getInstance().getQueueItems();
         for (Queue.Item item : items) {
-            if (item.task instanceof Run) {
+            if (item.task instanceof Job) {
                 if (allowAllQueuedItems) {
                     queuedIds.add(item.getId());
                 } else {
@@ -154,8 +155,8 @@ public final class QueueUtils {
 
                 for (Executor executor : executors) {
                     Queue.Executable executable = executor.getCurrentExecutable();
-                    if (executable instanceof AbstractBuild) {
-                        AbstractBuild build = (AbstractBuild)executable;
+                    if (executable instanceof Run) {
+                        Run build = (Run)executable;
                         runningProjects.add(build.getQueueId());
                     }
                 }
