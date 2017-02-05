@@ -31,7 +31,7 @@ import com.sonymobile.jenkins.plugins.lenientshutdown.blockcauses.GlobalShutdown
 import com.sonymobile.jenkins.plugins.lenientshutdown.blockcauses.NodeShutdownBlockage;
 
 import hudson.Extension;
-import hudson.model.AbstractProject;
+import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
@@ -56,6 +56,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
     public CauseOfBlockage canRun(Queue.Item item) {
         CauseOfBlockage blockage = null; //Allow to run by default
 
+
         ShutdownManageLink shutdownManageLink = ShutdownManageLink.getInstance();
         boolean isGoingToShutdown = shutdownManageLink.isGoingToShutdown();
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
@@ -63,9 +64,9 @@ public class BuildPreventer extends QueueTaskDispatcher {
         boolean isWhiteListedUpStreamProject = false;
 
         if (isGoingToShutdown
-                && item.task instanceof AbstractProject
+                && item.task instanceof Job
                 && !shutdownManageLink.isPermittedQueueId(item.getId())) {
-            AbstractProject project = (AbstractProject)item.task;
+            Job project = (Job)item.task;
             isWhitelistedProject = shutdownManageLink.isActiveQueueIds()
                     && configuration.isWhiteListedProject(project.getFullName());
 
@@ -112,7 +113,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
         boolean nodeIsGoingToShutdown = plugin.isNodeShuttingDown(nodeName);
 
         if (nodeIsGoingToShutdown
-                && item.task instanceof AbstractProject
+                && item.task instanceof Job
                 && !plugin.wasAlreadyQueued(item.getId(), nodeName)) {
 
             boolean otherNodeCanBuild = QueueUtils.canOtherNodeBuild(item, node);
