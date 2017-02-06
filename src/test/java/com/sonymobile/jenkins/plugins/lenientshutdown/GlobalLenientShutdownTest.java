@@ -35,6 +35,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,9 +43,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
+import hudson.Functions;
 import hudson.model.AbstractProject;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Job;
 import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Queue.Item;
@@ -55,6 +58,7 @@ import hudson.plugins.parameterizedtrigger.BuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.NodeParameters;
 import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.plugins.parameterizedtrigger.TriggerBuilder;
+import hudson.tasks.BatchFile;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
@@ -74,7 +78,7 @@ public class GlobalLenientShutdownTest {
     public JenkinsRule jenkinsRule = new JenkinsRule();
 
     private static final int TIMEOUT_SECONDS = 60;
-    private static final int QUIET_PERIOD = 15;
+    private static final int QUIET_PERIOD = 2;
     private static final int NUM_EXECUTORS = 4;
 
     /**
@@ -96,6 +100,7 @@ public class GlobalLenientShutdownTest {
      */
     @Test
     public void testActivateShutdown() throws Exception {
+
         toggleLenientShutdown();
         assertThat(ShutdownManageLink.getInstance().isGoingToShutdown(), is(true));
     }
@@ -106,6 +111,7 @@ public class GlobalLenientShutdownTest {
      */
     @Test
     public void testDeactivateShutdown() throws Exception {
+
         toggleLenientShutdown();
         toggleLenientShutdown();
         assertThat(ShutdownManageLink.getInstance().isGoingToShutdown(), is(false));
@@ -144,6 +150,22 @@ public class GlobalLenientShutdownTest {
     }
 
     /**
+     * Tests that pipleine job is blocked after shudown mode is initiated.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testPipelineIsBlockedWhenShutdownEnabled() throws Exception {
+        WorkflowJob project = jenkinsRule.jenkins.createProject(WorkflowJob.class, "p");
+        toggleLenientShutdown();
+
+        project.scheduleBuild2(0);
+        Item queueItem = waitForBlockedItem(project, TIMEOUT_SECONDS);
+
+        assertThat(queueItem.isBlocked(), is(true));
+        assertThat(Messages.IsAboutToShutDown(), is(queueItem.getWhy()));
+    }
+
+    /**
      * Tests that blocked builds are allowed to run after shutdown mode is deactivated again.
      * @throws Exception if something goes wrong
      */
@@ -174,16 +196,22 @@ public class GlobalLenientShutdownTest {
      */
     @Test
     public void testDoesNotBlockDownstream() throws Exception {
+
         FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
+        child.setQuietPeriod(0);
         Jenkins.getInstance().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        if (isUnix()) {
+            parent.getBuildersList().add(new Shell("sleep 2"));
+        } else {
+            parent.getBuildersList().add(new BatchFile("sleep 2"));
+        }
 
         //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
@@ -209,13 +237,20 @@ public class GlobalLenientShutdownTest {
                 ResultCondition.ALWAYS, new NodeParameters());
         BuildTriggerConfig grandChildTrigger = new BuildTriggerConfig(grandChild.getName(),
                 ResultCondition.ALWAYS, new NodeParameters());
+        child.setQuietPeriod(0);
+        grandChild.setQuietPeriod(0);
 
         parent.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(childTrigger));
         child.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(grandChildTrigger));
         Jenkins.getInstance().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        if (isUnix()) {
+            parent.getBuildersList().add(new Shell("sleep 2"));
+        } else {
+            parent.getBuildersList().add(new BatchFile("sleep 2"));
+        }
+
 
         //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
@@ -224,6 +259,7 @@ public class GlobalLenientShutdownTest {
 
         assertSuccessfulBuilds(parent, child, grandChild);
     }
+
 
     /**
      * Tests that downstream triggers that have been added as build steps in
@@ -239,7 +275,12 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        if (isUnix()) {
+            parent.getBuildersList().add(new Shell("sleep 2"));
+        } else {
+            parent.getBuildersList().add(new BatchFile("sleep 2"));
+        }
+
 
         BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
                 Result.FAILURE, Result.FAILURE, Result.UNSTABLE);
@@ -349,13 +390,19 @@ public class GlobalLenientShutdownTest {
      * @return the found item, null if the item didn't show up in the queue until timeout
      * @throws InterruptedException if interrupted
      */
-    private Item waitForBlockedItem(FreeStyleProject project, int timeout) throws InterruptedException {
+    private Item waitForBlockedItem(Job project, int timeout) throws InterruptedException {
         Queue jenkinsQueue = Jenkins.getInstance().getQueue();
-        Item queueItem = jenkinsQueue.getItem(project);
+        Item queueItem = null;
 
         int elapsedSeconds = 0;
         while (elapsedSeconds <= timeout) {
-            queueItem = jenkinsQueue.getItem(project);
+            if (project instanceof FreeStyleProject) {
+                queueItem = jenkinsQueue.getItem((FreeStyleProject)project);
+            }
+            if (project instanceof WorkflowJob) {
+                queueItem = jenkinsQueue.getItem((WorkflowJob)project);
+            }
+
             if (queueItem != null && queueItem.isBlocked()) {
                 return queueItem;
             }
@@ -436,7 +483,6 @@ public class GlobalLenientShutdownTest {
      */
     @Test
     public void testWhiteListedProjectsAreBlockedWhenQueueEmpty() throws Exception {
-
         FreeStyleProject project = jenkinsRule.createFreeStyleProject("whitelisted");
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
@@ -484,7 +530,6 @@ public class GlobalLenientShutdownTest {
         whiteListedProject.scheduleBuild2(0);
 
         assertSuccessfulBuilds(parent, child, whiteListedProject);
-
     }
 
     /**
@@ -581,6 +626,9 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject whiteListedChild = jenkinsRule.createFreeStyleProject("whitelistedchild");
         FreeStyleProject whiteListedGrandChild = jenkinsRule.createFreeStyleProject("whitelistedgrandchild");
         whiteListed.getPublishersList().add(new BuildTrigger(whiteListedChild.getName(), Result.SUCCESS));
+        whiteListedChild.setQuietPeriod(0);
+        whiteListedGrandChild.setQuietPeriod(0);
+
         whiteListedChild.getPublishersList().add(new BuildTrigger(whiteListedGrandChild.getName(), Result.SUCCESS));
 
         Jenkins.getInstance().rebuildDependencyGraph();
@@ -608,4 +656,14 @@ public class GlobalLenientShutdownTest {
     private void toggleLenientShutdown() throws Exception {
         ShutdownManageLink.getInstance().performToggleGoingToShutdown();
     }
+
+    /**
+     * Detects if running on Unix
+     *
+     * @return true if on Unix
+     */
+    private boolean isUnix() {
+        return !Functions.isWindows();
+    }
+
 }

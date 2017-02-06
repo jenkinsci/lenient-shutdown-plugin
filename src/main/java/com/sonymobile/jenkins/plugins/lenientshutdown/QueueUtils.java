@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Set;
 
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.Computer;
 import hudson.model.Executor;
+import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Run;
@@ -64,12 +64,13 @@ public final class QueueUtils {
     public static Set<Long> getPermittedQueueItemIds() {
         Set<Long> queuedIds = new HashSet<Long>();
         boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
-        for (Queue.Item item : Queue.getInstance().getItems()) {
-            if (item.task instanceof AbstractProject) {
+        Queue.Item[] items = ShutdownManageLink.getInstance().getQueueItems();
+        for (Queue.Item item : items) {
+            if (item.task instanceof Job) {
                 if (allowAllQueuedItems) {
                     queuedIds.add(item.getId());
                 } else {
-                    for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
+                    for (Run upstreamBuild : getUpstreamBuilds(item)) {
                         if (!upstreamBuild.isBuilding()) {
                             queuedIds.add(item.getId());
                             break;
@@ -154,8 +155,8 @@ public final class QueueUtils {
 
                 for (Executor executor : executors) {
                     Queue.Executable executable = executor.getCurrentExecutable();
-                    if (executable instanceof AbstractBuild) {
-                        AbstractBuild build = (AbstractBuild)executable;
+                    if (executable instanceof Run) {
+                        Run build = (Run)executable;
                         runningProjects.add(build.getQueueId());
                     }
                 }
@@ -190,15 +191,15 @@ public final class QueueUtils {
      * @param item the queue item to find upstream builds for
      * @return set of upstream builds
      */
-    public static Set<AbstractBuild> getUpstreamBuilds(Queue.Item item) {
-        Set<AbstractBuild> upstreamBuilds = new HashSet<AbstractBuild>();
+    public static Set<Run> getUpstreamBuilds(Queue.Item item) {
+        Set<Run> upstreamBuilds = new HashSet<Run>();
         for (Cause cause : item.getCauses()) {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
                 Run<?, ?> upstreamRun = upstreamCause.getUpstreamRun();
 
-                if (upstreamRun != null && upstreamRun instanceof AbstractBuild) {
-                    upstreamBuilds.add((AbstractBuild)upstreamRun);
+                if (upstreamRun != null) {
+                    upstreamBuilds.add(upstreamRun);
                 }
             }
         }
@@ -233,10 +234,17 @@ public final class QueueUtils {
             //Item is in quiet period. We can't make a full check if other nodes can build,
             //instead we check if its upstream was built on the argument node and it that case
             //return false.
+            //In case the upstream is not an AbstractBuild (e.g. a pipeline job) we also return false
             otherNodeCanBuild = true;
-            for (AbstractBuild upstreamBuild : getUpstreamBuilds(item)) {
-                boolean isUpstreamFinished = !upstreamBuild.isBuilding();
-                if (isUpstreamFinished && upstreamBuild.getBuiltOnStr().equals(node.getNodeName())) {
+            for (Run upstreamBuild : getUpstreamBuilds(item)) {
+                if (upstreamBuild instanceof AbstractBuild) {
+                    AbstractBuild upstreamBuild2 = (AbstractBuild)upstreamBuild;
+                    boolean isUpstreamFinished = !upstreamBuild.isBuilding();
+                    if (isUpstreamFinished && upstreamBuild2.getBuiltOnStr().equals(node.getNodeName())) {
+                        otherNodeCanBuild = false;
+                        break;
+                    }
+                } else {
                     otherNodeCanBuild = false;
                     break;
                 }
