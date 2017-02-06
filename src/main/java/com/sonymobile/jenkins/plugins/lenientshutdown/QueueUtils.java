@@ -198,7 +198,7 @@ public final class QueueUtils {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
                 Run<?, ?> upstreamRun = upstreamCause.getUpstreamRun();
 
-                if (upstreamRun != null && upstreamRun instanceof Run) {
+                if (upstreamRun != null) {
                     upstreamBuilds.add(upstreamRun);
                 }
             }
