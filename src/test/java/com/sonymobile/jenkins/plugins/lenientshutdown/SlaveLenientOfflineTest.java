@@ -24,6 +24,23 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.fail;
+import static junit.framework.TestCase.assertNotNull;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.SleepBuilder;
+
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Node;
@@ -33,24 +50,10 @@ import hudson.model.queue.QueueTaskFuture;
 import hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.BlockingBehaviour;
 import hudson.plugins.parameterizedtrigger.TriggerBuilder;
+import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.BuildTrigger;
-import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.concurrent.TimeUnit;
-
-import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
-import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Test class for taking individual slaves offline leniently.
@@ -58,6 +61,8 @@ import static org.junit.Assert.assertFalse;
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
 public class SlaveLenientOfflineTest {
+
+    private static final int JOB_SLEEP_TIME = 5000;
 
     /**
      * Jenkins rule instance.
@@ -80,9 +85,16 @@ public class SlaveLenientOfflineTest {
      */
     @Before
     public void setUp() throws Exception {
+        Jenkins jenkins = jenkinsRule.getInstance();
+        GlobalMatrixAuthorizationStrategy authStategy = new GlobalMatrixAuthorizationStrategy();
+        authStategy.add(Jenkins.ADMINISTER, "alice");
+        jenkins.setAuthorizationStrategy(authStategy);
+        jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+
         plugin = PluginImpl.getInstance();
         slave0 = jenkinsRule.createOnlineSlave();
         slave1 = jenkinsRule.createOnlineSlave();
+
 
         jenkinsRule.jenkins.setMode(Node.Mode.EXCLUSIVE); //Don't build on master
     }
@@ -153,7 +165,7 @@ public class SlaveLenientOfflineTest {
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
-        parent.getBuildersList().add(new Shell("sleep 10"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
@@ -196,7 +208,7 @@ public class SlaveLenientOfflineTest {
         slave0.getComputer().setTemporarilyOffline(true);
         //Everything will now build on slave1 since slave0 is offline.
 
-        parent.getBuildersList().add(new Shell("sleep 10"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
@@ -218,7 +230,7 @@ public class SlaveLenientOfflineTest {
         FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
 
-        parent.getBuildersList().add(new Shell("sleep 10"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         Jenkins.getInstance().rebuildDependencyGraph();
@@ -262,7 +274,7 @@ public class SlaveLenientOfflineTest {
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
 
         // Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
                 Result.FAILURE, Result.FAILURE, Result.UNSTABLE);
@@ -302,7 +314,9 @@ public class SlaveLenientOfflineTest {
      */
     private void toggleLenientSlaveOffline(Node node) throws Exception {
         String url = node.toComputer().getUrl() + ShutdownSlaveAction.URL;
-        jenkinsRule.createWebClient().goTo(url);
+        WebClient client = jenkinsRule.createWebClient();
+        client.login("alice");
+        client.goTo(url);
     }
 
     /**
@@ -313,7 +327,7 @@ public class SlaveLenientOfflineTest {
      */
     private FreeStyleBuild activateShutdownDuringBuild() throws Exception {
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
-        project.getBuildersList().add(new Shell("sleep 10"));
+        project.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
         project.setAssignedNode(slave0);
 
         QueueTaskFuture<FreeStyleBuild> buildFuture = project.scheduleBuild2(0);

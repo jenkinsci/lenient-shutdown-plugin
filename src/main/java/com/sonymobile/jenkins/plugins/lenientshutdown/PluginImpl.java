@@ -44,6 +44,7 @@ import hudson.model.Node;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityContextExecutorService;
 
 /**
  * Plugin base class.
@@ -119,7 +120,7 @@ public class PluginImpl extends Plugin {
             toggleNodeShuttingDown(nodeName);
             setOfflineByUser(nodeName, User.current());
 
-            ExecutorService service = Executors.newSingleThreadExecutor();
+            ExecutorService service = new SecurityContextExecutorService(Executors.newSingleThreadExecutor());
             service.submit(new Runnable() {
                 @Override
                 public void run() {

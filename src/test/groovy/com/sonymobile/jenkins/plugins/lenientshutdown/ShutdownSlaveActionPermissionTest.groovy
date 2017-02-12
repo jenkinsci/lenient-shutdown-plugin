@@ -29,12 +29,12 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException
 import hudson.model.Computer
 import hudson.security.GlobalMatrixAuthorizationStrategy
 import hudson.slaves.DumbSlave
-import hudson.tasks.Shell
 import jenkins.model.Jenkins
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.jvnet.hudson.test.GroovyJenkinsRule
+import org.jvnet.hudson.test.SleepBuilder
 
 
 /**
@@ -278,7 +278,7 @@ class ShutdownSlaveActionPermissionTest {
 
     void startBuild() {
         def project = jenkins.createFreeStyleProject()
-        project.buildersList.add(new Shell("sleep 100"))
+        project.buildersList.add(new SleepBuilder(100000))
         project.setAssignedLabel(slave.selfLabel)
         project.scheduleBuild2(0)
     }

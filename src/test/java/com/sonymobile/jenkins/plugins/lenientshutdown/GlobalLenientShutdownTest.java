@@ -39,6 +39,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.SleepBuilder;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
@@ -55,8 +57,8 @@ import hudson.plugins.parameterizedtrigger.BuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.NodeParameters;
 import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.plugins.parameterizedtrigger.TriggerBuilder;
+import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
-import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
 
 /**
@@ -66,6 +68,8 @@ import jenkins.model.Jenkins;
  */
 public class GlobalLenientShutdownTest {
 
+    private static final int JOB_SLEEP_TIME = 5000;
+
     /**
      * Jenkins rule instance.
      */
@@ -74,7 +78,7 @@ public class GlobalLenientShutdownTest {
     public JenkinsRule jenkinsRule = new JenkinsRule();
 
     private static final int TIMEOUT_SECONDS = 60;
-    private static final int QUIET_PERIOD = 15;
+    private static final int QUIET_PERIOD = 5;
     private static final int NUM_EXECUTORS = 4;
 
     /**
@@ -85,6 +89,10 @@ public class GlobalLenientShutdownTest {
     @Before
     public void setUp() throws IOException {
         Jenkins jenkins = jenkinsRule.getInstance();
+        GlobalMatrixAuthorizationStrategy authStategy = new GlobalMatrixAuthorizationStrategy();
+        authStategy.add(Jenkins.ADMINISTER, "alice");
+        jenkins.setAuthorizationStrategy(authStategy);
+        jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
         jenkins.setNumExecutors(NUM_EXECUTORS);
         //TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
         jenkins.setNodes(jenkins.getNodes());
@@ -167,6 +175,7 @@ public class GlobalLenientShutdownTest {
         assertThat(build.getResult(), is(equalTo(Result.SUCCESS)));
     }
 
+
     /**
      * Tests that builds with white listed upstreams are allowed,
      * even though lenient shutdown mode is active.
@@ -183,7 +192,7 @@ public class GlobalLenientShutdownTest {
         Jenkins.getInstance().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
@@ -215,7 +224,7 @@ public class GlobalLenientShutdownTest {
         Jenkins.getInstance().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
@@ -239,7 +248,7 @@ public class GlobalLenientShutdownTest {
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
         //Gives lenient shutdown mode time to activate while parent is still building:
-        parent.getBuildersList().add(new Shell("sleep 5"));
+        parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         BlockingBehaviour waitForDownstreamBehavior = new BlockingBehaviour(
                 Result.FAILURE, Result.FAILURE, Result.UNSTABLE);
@@ -268,7 +277,9 @@ public class GlobalLenientShutdownTest {
      */
     @Test
     public void testLinkIsVisible() throws Exception {
-        HtmlPage managePage = jenkinsRule.createWebClient().goTo("manage");
+        WebClient w = jenkinsRule.createWebClient();
+        w.login("alice");
+        HtmlPage managePage = w.goTo("manage");
         assertTrue(managePage.asText().contains(ShutdownManageLink.getInstance().getDisplayName()));
     }
 
