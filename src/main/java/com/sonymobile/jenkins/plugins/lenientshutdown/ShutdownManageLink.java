@@ -34,15 +34,15 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import hudson.Extension;
-import jenkins.model.Jenkins;
 import hudson.model.ManagementLink;
 import hudson.security.Permission;
+import jenkins.model.Jenkins;
+import jenkins.security.SecurityContextExecutorService;
 
 /**
  * Adds a link on the manage Jenkins page for lenient shutdown.
@@ -203,7 +203,7 @@ public class ShutdownManageLink extends ManagementLink {
     public void performToggleGoingToShutdown() {
         toggleGoingToShutdown();
         if (isGoingToShutdown()) {
-            ExecutorService service = Executors.newSingleThreadExecutor();
+            ExecutorService service = new SecurityContextExecutorService(Executors.newSingleThreadExecutor());
             service.submit(new Runnable() {
                 @Override
                 public void run() {

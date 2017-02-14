@@ -25,7 +25,7 @@ package com.sonymobile.jenkins.plugins.lenientshutdown.cli
 
 import com.sonymobile.jenkins.plugins.lenientshutdown.PluginImpl
 import hudson.slaves.DumbSlave
-import hudson.tasks.Shell
+import org.jvnet.hudson.test.SleepBuilder;
 import org.junit.Test
 
 /**
@@ -54,11 +54,12 @@ class LenientOfflineNodeCommandTest extends BaseCliTest {
         DumbSlave slave = jenkins.createOnlineSlave()
 
         def project = jenkins.createFreeStyleProject()
-        project.buildersList.add(new Shell("sleep 100"))
+        project.buildersList.add(new SleepBuilder(100000))
         project.setAssignedLabel(slave.selfLabel)
         project.scheduleBuild2(0)
 
         assert cmd("lenient-offline-node", slave.nodeName).execute().waitFor() == 0 : "Cmd Error"
         assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be lenient offline"
     }
+
 }
