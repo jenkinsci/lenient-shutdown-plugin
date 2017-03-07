@@ -8,7 +8,7 @@
 
     <groupId>com.sonymobile.jenkins.plugins.lenientshutdown</groupId>
     <artifactId>lenientshutdown</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2-SNAPSHOT</version>
     <name>Lenient shutdown plugin</name>
     <description>This plugin allows administrators to put Jenkins into lenient shutdown mode.</description>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Lenient+shutdown+plugin</url>
@@ -234,6 +234,6 @@
         <connection>scm:git:ssh://github.com/jenkinsci/lenient-shutdown-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/lenient-shutdown-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/lenient-shutdown-plugin</url>
-      <tag>lenientshutdown-1.1.1</tag>
+      <tag>HEAD</tag>
   </scm>
 </project>
