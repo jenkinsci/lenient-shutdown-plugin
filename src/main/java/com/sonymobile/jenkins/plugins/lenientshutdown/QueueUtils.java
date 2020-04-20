@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Set;
 
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.Computer;
 import hudson.model.Executor;
+import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Run;
@@ -65,7 +65,7 @@ public final class QueueUtils {
         Set<Long> queuedIds = new HashSet<Long>();
         boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
         for (Queue.Item item : Queue.getInstance().getItems()) {
-            if (item.task instanceof AbstractProject) {
+            if (item.task instanceof Job) {
                 if (allowAllQueuedItems) {
                     queuedIds.add(item.getId());
                 } else {
