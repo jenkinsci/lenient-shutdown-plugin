@@ -63,7 +63,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
         boolean isWhiteListedUpStreamProject = false;
 
         if (isGoingToShutdown
-                && item.task instanceof Job
+                && QueueUtils.isApplicable(item.task)
                 && !shutdownManageLink.isPermittedQueueId(item.getId())) {
             Job project = (Job)item.task;
             isWhitelistedProject = shutdownManageLink.isActiveQueueIds()
@@ -112,7 +112,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
         boolean nodeIsGoingToShutdown = plugin.isNodeShuttingDown(nodeName);
 
         if (nodeIsGoingToShutdown
-                && item.task instanceof Job
+                && QueueUtils.isApplicable(item.task)
                 && !plugin.wasAlreadyQueued(item.getId(), nodeName)) {
 
             boolean otherNodeCanBuild = QueueUtils.canOtherNodeBuild(item, node);

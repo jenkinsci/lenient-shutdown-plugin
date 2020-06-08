@@ -54,6 +54,8 @@ public class ShutdownConfiguration extends GlobalConfiguration {
 
     private boolean allowWhiteListedProjects;
 
+    private boolean allowAllJobs;
+
     /**
      * A list of projects that are allowed to run in case allowWhiteListedProjects is enabled.
      */
@@ -85,6 +87,15 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     }
 
     /**
+     * Checks if white listed projects are allowed to build in lenient shutdown mode.
+     *
+     * @return true if white listed projects will build, false otherwise
+     */
+    public boolean isAllowAllJobs() {
+        return allowAllJobs;
+    }
+
+    /**
      * Sets the flag if all queued items are allowed to finish or not.
      *
      * @param allowAllQueuedItems true - enabled, false - disabled
@@ -101,6 +112,16 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     public void setAllowWhiteListedProjects(boolean allowWhiteListedProjects) {
         this.allowWhiteListedProjects = allowWhiteListedProjects;
     }
+
+    /**
+     * Sets the flag if any type of hudson.model.Job is allowed or not.
+     *
+     * @param allowAllJobs true - enabled, false - disabled
+     */
+    public void setAllowAllJobs(boolean allowAllJobs) {
+        this.allowAllJobs = allowAllJobs;
+    }
+
 
     /**
      * Gets the shutdown message to be displayed in header.
@@ -162,6 +183,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
         shutdownMessage = json.getString("shutdownMessage");
         allowAllQueuedItems = json.getBoolean("allowAllQueuedItems");
         allowWhiteListedProjects = json.getBoolean("allowWhiteListedProjects");
+        allowAllJobs = json.getBoolean("allowAllJobs");
         whiteListedProjects.clear();
         whiteListedProjects.addAll(Arrays.asList(json.getString("whiteListedProjects").split(DELIMETER)));
         save();

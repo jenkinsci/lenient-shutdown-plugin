@@ -28,6 +28,7 @@ import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAsse
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -41,6 +42,8 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.SleepBuilder;
+
+import org.powermock.api.mockito.PowerMockito;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
@@ -618,5 +621,38 @@ public class GlobalLenientShutdownTest {
      */
     private void toggleLenientShutdown() throws Exception {
         ShutdownManageLink.getInstance().performToggleGoingToShutdown();
+    }
+
+    /**
+     * Tests that all builds are started as normal when the shutdown mode has
+     * not been initiated.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testIsApplicableWhenFalse() throws Exception {
+        ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
+
+        configuration.setAllowAllJobs(false);
+        AbstractProject project = jenkinsRule.createFreeStyleProject();
+        assertTrue(QueueUtils.isApplicable(project));
+
+        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        assertFalse(QueueUtils.isApplicable(job));
+    }
+    /**
+     * Tests that all builds are started as normal when the shutdown mode has
+     * not been initiated.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void testIsApplicableWhenTrue() throws Exception {
+        ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
+
+        configuration.setAllowAllJobs(true);
+        AbstractProject project = jenkinsRule.createFreeStyleProject();
+        assertTrue(QueueUtils.isApplicable(project));
+
+        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        assertTrue(QueueUtils.isApplicable(job));
     }
 }
