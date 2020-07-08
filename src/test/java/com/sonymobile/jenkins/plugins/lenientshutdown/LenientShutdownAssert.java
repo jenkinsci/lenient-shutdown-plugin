@@ -93,21 +93,21 @@ public final class LenientShutdownAssert {
     }
 
     /**
-     * Asserts that argument slave goes temporarily offline within a timely manner.
-     * @param slave the slave to assert for
+     * Asserts that argument node goes temporarily offline within a timely manner.
+     * @param node the node to assert for
      * @throws InterruptedException if something goes wrong
      */
-    public static void assertSlaveGoesOffline(DumbSlave slave) throws InterruptedException {
+    public static void assertNodeGoesOffline(DumbSlave node) throws InterruptedException {
         int elapsedSeconds = 0;
         while (elapsedSeconds <= TIMEOUT_SECONDS) {
 
-            if (slave.getComputer().isTemporarilyOffline()) {
+            if (node.getComputer().isTemporarilyOffline()) {
                 break;
             }
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;
         }
         assertTrue("Node should shut down after builds are complete",
-                slave.toComputer().isTemporarilyOffline());
+                node.toComputer().isTemporarilyOffline());
     }
 }

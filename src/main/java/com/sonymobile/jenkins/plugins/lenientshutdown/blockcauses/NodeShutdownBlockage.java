@@ -36,7 +36,7 @@ public class NodeShutdownBlockage extends CauseOfBlockage {
 
     @Override
     public String getShortDescription() {
-        return Messages.SlaveIsAboutToShutDown();
+        return Messages.NodeIsAboutToShutDown();
     }
 
 }

@@ -216,7 +216,7 @@ public final class QueueUtils {
         boolean otherNodeCanBuild = false;
 
         if (item instanceof BuildableItem) {
-            // Item is ready to build, we can make a full check if other slaves can build it.
+            // Item is ready to build, we can make a full check if other nodes can build it.
             BuildableItem buildableItem = (BuildableItem)item;
             Set<Node> allNodes = new HashSet<Node>(Jenkins.getInstance().getNodes());
             allNodes.add(Jenkins.getInstance());
