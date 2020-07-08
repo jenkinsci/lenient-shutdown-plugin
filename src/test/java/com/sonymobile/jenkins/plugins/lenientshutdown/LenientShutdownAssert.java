@@ -107,7 +107,7 @@ public final class LenientShutdownAssert {
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;
         }
-        assertTrue("Slave should shut down after builds are complete",
+        assertTrue("Node should shut down after builds are complete",
                 slave.toComputer().isTemporarilyOffline());
     }
 }
