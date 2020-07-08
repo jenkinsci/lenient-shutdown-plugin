@@ -40,9 +40,9 @@ class LenientOfflineNodeCommandTest extends BaseCliTest {
      */
     @Test
     void testRunTemporary() {
-        DumbSlave slave = jenkins.createOnlineSlave()
-        assert cmd("lenient-offline-node", slave.nodeName).execute().waitFor() == 0 : "Cmd Error"
-        assert slave.toComputer().isOffline() : "Should be offline"
+        DumbSlave node = jenkins.createOnlineSlave()
+        assert cmd("lenient-offline-node", node.nodeName).execute().waitFor() == 0 : "Cmd Error"
+        assert node.toComputer().isOffline() : "Should be offline"
     }
 
 
@@ -51,15 +51,15 @@ class LenientOfflineNodeCommandTest extends BaseCliTest {
      */
     @Test
     void testRunLenient() {
-        DumbSlave slave = jenkins.createOnlineSlave()
+        DumbSlave node = jenkins.createOnlineSlave()
 
         def project = jenkins.createFreeStyleProject()
         project.buildersList.add(new SleepBuilder(100000))
-        project.setAssignedLabel(slave.selfLabel)
+        project.setAssignedLabel(node.selfLabel)
         project.scheduleBuild2(0)
 
-        assert cmd("lenient-offline-node", slave.nodeName).execute().waitFor() == 0 : "Cmd Error"
-        assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be lenient offline"
+        assert cmd("lenient-offline-node", node.nodeName).execute().waitFor() == 0 : "Cmd Error"
+        assert PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Should be lenient offline"
     }
 
 }

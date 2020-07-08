@@ -38,15 +38,15 @@ import org.jvnet.hudson.test.SleepBuilder
 
 
 /**
- * Security and Permissions tests for {@link ShutdownSlaveAction}.
+ * Security and Permissions tests for {@link ShutdownNodeAction}.
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-class ShutdownSlaveActionPermissionTest {
+class ShutdownNodeActionPermissionTest {
 
     @Rule
     public GroovyJenkinsRule jenkins = new GroovyJenkinsRule()
-    private DumbSlave slave
+    private DumbSlave node
 
     /**
      * The XPath to the left side icon
@@ -64,11 +64,11 @@ class ShutdownSlaveActionPermissionTest {
     static final String LINK_TEXT_XPATH = "//a[@class='task-link' and contains(@href, 'lenientshutdown')]"
 
     /**
-     * Create a slave to test on.
+     * Create a node to test on.
      */
     @Before
     void before() {
-        slave = jenkins.createOnlineSlave()
+        node = jenkins.createOnlineSlave()
     }
 
     /**
@@ -76,7 +76,7 @@ class ShutdownSlaveActionPermissionTest {
      */
     @Test
     void testGetIconFileName() {
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(IMG_XPATH)
         assert el != null : "No img found"
     }
@@ -86,7 +86,7 @@ class ShutdownSlaveActionPermissionTest {
      */
     @Test
     void testGetDisplayName() {
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el != null : "No link found"
     }
@@ -96,8 +96,8 @@ class ShutdownSlaveActionPermissionTest {
      */
     @Test
     void testGetIconFileNameCancel() {
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
-        def page = jenkins.createWebClient().getPage(slave)
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(IMG_XPATH_CANCEL)
         assert el != null : "No img found"
     }
@@ -107,8 +107,8 @@ class ShutdownSlaveActionPermissionTest {
      */
     @Test
     void testGetDisplayNameCancel() {
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
-        def page = jenkins.createWebClient().getPage(slave)
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el != null : "No link found"
     }
@@ -119,8 +119,8 @@ class ShutdownSlaveActionPermissionTest {
     @Test
     void testDoIndex() {
         startBuild()
-        jenkins.createWebClient().getPage(slave, ShutdownSlaveAction.URL)
-        assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Unaffected"
+        jenkins.createWebClient().getPage(node, ShutdownNodeAction.URL)
+        assert PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Unaffected"
     }
 
     //Tests below are with security set
@@ -132,17 +132,17 @@ class ShutdownSlaveActionPermissionTest {
     void testGetIconFileNameNoPermission() {
         setupSecurity()
         //As anonymous
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(IMG_XPATH)
         assert el == null : "img found"
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave)
+        page = jenkins.createWebClient().login("alice").getPage(node)
         el = page.getFirstByXPath(IMG_XPATH)
         assert el != null : "No img found"
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave)
+        page = jenkins.createWebClient().login("bobby").getPage(node)
         el = page.getFirstByXPath(IMG_XPATH)
         assert el == null : "img found"
     }
@@ -155,17 +155,17 @@ class ShutdownSlaveActionPermissionTest {
     void testGetDisplayNameNoPermission() {
         setupSecurity()
         //As anonymous
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el == null : "link found"
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave)
+        page = jenkins.createWebClient().login("alice").getPage(node)
         el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el != null : "No link found"
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave)
+        page = jenkins.createWebClient().login("bobby").getPage(node)
         el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el == null : "link found"
     }
@@ -176,19 +176,19 @@ class ShutdownSlaveActionPermissionTest {
     @Test
     void testGetIconFileNameCancelNoPermission() {
         setupSecurity()
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
         //As anonymous
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(IMG_XPATH_CANCEL)
         assert el == null : "img found"
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave)
+        page = jenkins.createWebClient().login("alice").getPage(node)
         el = page.getFirstByXPath(IMG_XPATH_CANCEL)
         assert el != null : "No img found"
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave)
+        page = jenkins.createWebClient().login("bobby").getPage(node)
         el = page.getFirstByXPath(IMG_XPATH_CANCEL)
         assert el == null : "img found"
     }
@@ -199,19 +199,19 @@ class ShutdownSlaveActionPermissionTest {
     @Test
     void testGetDisplayNameCancelNoPermission() {
         setupSecurity()
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
         //As anonymous
-        def page = jenkins.createWebClient().getPage(slave)
+        def page = jenkins.createWebClient().getPage(node)
         def el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el == null : "link found"
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave)
+        page = jenkins.createWebClient().login("alice").getPage(node)
         el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el != null : "No link found"
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave)
+        page = jenkins.createWebClient().login("bobby").getPage(node)
         el = page.getFirstByXPath(LINK_TEXT_XPATH)
         assert el == null : "link found"
     }
@@ -222,7 +222,7 @@ class ShutdownSlaveActionPermissionTest {
     @Test(expected = FailingHttpStatusCodeException)
     void testDoIndexNoPermissionAnonymous() {
         setupSecurity()
-        jenkins.createWebClient().getPage(slave, ShutdownSlaveAction.URL)
+        jenkins.createWebClient().getPage(node, ShutdownNodeAction.URL)
     }
 
     /**
@@ -231,7 +231,7 @@ class ShutdownSlaveActionPermissionTest {
     @Test(expected = FailingHttpStatusCodeException)
     void testDoIndexNoPermissionBobby() {
         setupSecurity()
-        jenkins.createWebClient().login("bobby").getPage(slave, ShutdownSlaveAction.URL)
+        jenkins.createWebClient().login("bobby").getPage(node, ShutdownNodeAction.URL)
     }
 
     /**
@@ -244,9 +244,9 @@ class ShutdownSlaveActionPermissionTest {
         startBuild()
 		TimeUnit.SECONDS.sleep(1);
         
-        client.getPage(slave, ShutdownSlaveAction.URL)
+        client.getPage(node, ShutdownNodeAction.URL)
         
-        assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Unaffected"
+        assert PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Unaffected"
     }
 
     /**
@@ -256,9 +256,9 @@ class ShutdownSlaveActionPermissionTest {
     void testDoIndexPermissionCancelAlice() {
         setupSecurity()
         def client = jenkins.createWebClient().login("alice")
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
-        client.getPage(slave, ShutdownSlaveAction.URL)
-        assert !PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Unaffected"
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
+        client.getPage(node, ShutdownNodeAction.URL)
+        assert !PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Unaffected"
     }
 
 
@@ -279,7 +279,7 @@ class ShutdownSlaveActionPermissionTest {
     void startBuild() {
         def project = jenkins.createFreeStyleProject()
         project.buildersList.add(new SleepBuilder(100000))
-        project.setAssignedLabel(slave.selfLabel)
+        project.setAssignedLabel(node.selfLabel)
         project.scheduleBuild2(0)
     }
 }

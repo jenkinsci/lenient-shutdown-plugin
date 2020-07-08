@@ -40,11 +40,11 @@ class LenientOnlineNodeCommandTest extends BaseCliTest {
      */
     @Test
     void testRunFromLenient() {
-        DumbSlave slave = jenkins.createOnlineSlave()
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
-        assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be offline"
-        assert cmd("lenient-online-node", slave.nodeName).execute().waitFor() == 0 : "Cmd error"
-        assert !PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be online"
+        DumbSlave node = jenkins.createOnlineSlave()
+        PluginImpl.instance.toggleNodeShuttingDown(node.nodeName)
+        assert PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Should be offline"
+        assert cmd("lenient-online-node", node.nodeName).execute().waitFor() == 0 : "Cmd error"
+        assert !PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Should be online"
     }
 
     /**
@@ -52,10 +52,10 @@ class LenientOnlineNodeCommandTest extends BaseCliTest {
      */
     @Test
     void testRunFromTemporary() {
-        DumbSlave slave = jenkins.createOnlineSlave()
-        slave.toComputer().setTemporarilyOffline(true, new OfflineCause.ByCLI("Bomb"))
-        assert cmd("lenient-online-node", slave.nodeName).execute().waitFor() == 0 : "Cmd error"
-        assert !PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be online"
-        assert slave.toComputer().isOnline() : "Should be online"
+        DumbSlave node = jenkins.createOnlineSlave()
+        node.toComputer().setTemporarilyOffline(true, new OfflineCause.ByCLI("Bomb"))
+        assert cmd("lenient-online-node", node.nodeName).execute().waitFor() == 0 : "Cmd error"
+        assert !PluginImpl.instance.isNodeShuttingDown(node.nodeName) : "Should be online"
+        assert node.toComputer().isOnline() : "Should be online"
     }
 }

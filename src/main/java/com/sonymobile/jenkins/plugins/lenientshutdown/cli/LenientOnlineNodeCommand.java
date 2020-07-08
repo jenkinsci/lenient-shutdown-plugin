@@ -25,6 +25,7 @@ package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
 import com.sonymobile.jenkins.plugins.lenientshutdown.Messages;
 import com.sonymobile.jenkins.plugins.lenientshutdown.PluginImpl;
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownNodeAction;
 import hudson.Extension;
 import hudson.cli.CLICommand;
 import hudson.model.Computer;
@@ -35,7 +36,7 @@ import org.kohsuke.args4j.Argument;
  * Sets a node online from being offline leniently or temporary offline.
  * Mimicking the <code>online-node</code> command
  *
- * @see com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownSlaveAction
+ * @see ShutdownNodeAction
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
 @Extension

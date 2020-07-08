@@ -35,7 +35,7 @@ import hudson.slaves.ComputerListener;
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
 @Extension
-public class ShutdownSlaveResetter extends ComputerListener {
+public class ShutdownNodeResetter extends ComputerListener {
 
     /**
      * Makes sure the lenient offline status is being reset

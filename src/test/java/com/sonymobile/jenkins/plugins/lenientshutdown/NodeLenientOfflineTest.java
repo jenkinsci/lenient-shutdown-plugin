@@ -24,7 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertNodeGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
@@ -56,11 +56,11 @@ import hudson.tasks.BuildTrigger;
 import jenkins.model.Jenkins;
 
 /**
- * Test class for taking individual slaves offline leniently.
+ * Test class for taking individual nodes offline leniently.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
-public class SlaveLenientOfflineTest {
+public class NodeLenientOfflineTest {
 
     private static final int JOB_SLEEP_TIME = 5000;
 
@@ -76,11 +76,11 @@ public class SlaveLenientOfflineTest {
 
     private PluginImpl plugin;
 
-    private DumbSlave slave0;
-    private DumbSlave slave1;
+    private DumbSlave node0;
+    private DumbSlave node1;
 
     /**
-     * Prepares for test by creating slaves and disabling builds on master.
+     * Prepares for test by creating nodes and disabling builds on master.
      * @throws Exception if something goes wrong
      */
     @Before
@@ -92,8 +92,8 @@ public class SlaveLenientOfflineTest {
         jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
 
         plugin = PluginImpl.getInstance();
-        slave0 = jenkinsRule.createOnlineSlave();
-        slave1 = jenkinsRule.createOnlineSlave();
+        node0 = jenkinsRule.createOnlineSlave();
+        node1 = jenkinsRule.createOnlineSlave();
 
 
         jenkinsRule.jenkins.setMode(Node.Mode.EXCLUSIVE); //Don't build on master
@@ -101,14 +101,14 @@ public class SlaveLenientOfflineTest {
 
     /**
      * Tests that the URL for activating shutdown mode
-     * for a specific slave works as expected.
+     * for a specific node works as expected.
      * @throws Exception if something goes wrong
      */
     @Test
     public void testActivateShutdownNoBuilds() throws Exception {
-        toggleLenientSlaveOffline(slave0);
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
-        assertFalse(slave1.toComputer().isTemporarilyOffline());
+        toggleLenientNodeOffline(node0);
+        assertTrue(node0.toComputer().isTemporarilyOffline());
+        assertFalse(node1.toComputer().isTemporarilyOffline());
     }
 
 
@@ -120,22 +120,22 @@ public class SlaveLenientOfflineTest {
     public void testActivateShutdownDuringBuild() throws Exception {
         FreeStyleBuild build = activateShutdownDuringBuild();
 
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
+        assertTrue(node0.toComputer().isTemporarilyOffline());
         assertEquals(Result.SUCCESS, build.getResult());
     }
 
     /**
-     * Tests that the build is not completed when all slaves are offline before
+     * Tests that the build is not completed when all nodes are offline before
      * the build is started.
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testAllSlavesOfflineNothingBuilds() throws Exception {
+    public void testAllNodesOfflineNothingBuilds() throws Exception {
         Queue jenkinsQueue = Jenkins.getInstance().getQueue();
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
 
-        toggleLenientSlaveOffline(slave0);
-        toggleLenientSlaveOffline(slave1);
+        toggleLenientNodeOffline(node0);
+        toggleLenientNodeOffline(node1);
 
         project.scheduleBuild2(0);
         Queue.Item queueItem = jenkinsQueue.getItem(project);
@@ -154,7 +154,7 @@ public class SlaveLenientOfflineTest {
     }
 
     /**
-     * Tests that a chain of downstream builds continues to build on another slave
+     * Tests that a chain of downstream builds continues to build on another node
      * after the first has been put to lenient offline, allowing the first to go offline
      * more quickly.
      * @throws Exception if something goes wrong
@@ -172,20 +172,20 @@ public class SlaveLenientOfflineTest {
         Jenkins.getInstance().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
-        TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a slave (not the master).
+        TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a node (not the master).
 
         Node buildingOn = parent.getLastBuiltOn();
         if (buildingOn == null || buildingOn == Jenkins.getInstance()) {
             fail("Project was not built correctly");
         }
 
-        toggleLenientSlaveOffline(buildingOn);
+        toggleLenientNodeOffline(buildingOn);
 
         Node expectedNextBuildingOn = null;
-        if (buildingOn.equals(slave0)) {
-            expectedNextBuildingOn = slave1;
-        } else if (buildingOn.equals(slave1)) {
-            expectedNextBuildingOn = slave0;
+        if (buildingOn.equals(node0)) {
+            expectedNextBuildingOn = node1;
+        } else if (buildingOn.equals(node1)) {
+            expectedNextBuildingOn = node0;
         }
 
         assertSuccessfulBuilds(parent, child, grandChild);
@@ -205,8 +205,8 @@ public class SlaveLenientOfflineTest {
         FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
         FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
 
-        slave0.getComputer().setTemporarilyOffline(true);
-        //Everything will now build on slave1 since slave0 is offline.
+        node0.getComputer().setTemporarilyOffline(true);
+        //Everything will now build on node1 since node0 is offline.
 
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
@@ -215,10 +215,10 @@ public class SlaveLenientOfflineTest {
         Jenkins.getInstance().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
-        toggleLenientSlaveOffline(slave1);
+        toggleLenientNodeOffline(node1);
 
         assertSuccessfulBuilds(parent, child, grandChild);
-        assertSlaveGoesOffline(slave1);
+        assertNodeGoesOffline(node1);
     }
 
     /**
@@ -234,38 +234,38 @@ public class SlaveLenientOfflineTest {
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         Jenkins.getInstance().rebuildDependencyGraph();
-        parent.setAssignedNode(slave0);
-        child.setAssignedNode(slave0);
+        parent.setAssignedNode(node0);
+        child.setAssignedNode(node0);
 
         parent.scheduleBuild2(0).waitForStart();
 
-        toggleLenientSlaveOffline(slave0);
-        if (!plugin.isNodeShuttingDown(slave0.getNodeName())) {
+        toggleLenientNodeOffline(node0);
+        if (!plugin.isNodeShuttingDown(node0.getNodeName())) {
             fail("Node should be shutting down!");
         }
-        //Now reactivate the slave
-        toggleLenientSlaveOffline(slave0);
+        //Now reactivate the node
+        toggleLenientNodeOffline(node0);
 
         assertSuccessfulBuilds(parent, child);
     }
 
     /**
-     * Makes sure that the lenient shutdown mode is reset after a slave is taken back online.
+     * Makes sure that the lenient shutdown mode is reset after a node is taken back online.
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testShutdownSlaveResetter() throws Exception {
+    public void testShutdownNodeResetter() throws Exception {
         activateShutdownDuringBuild();
 
         //Deactivates temporarily offline mode:
-        slave0.toComputer().setTemporarilyOffline(false);
+        node0.toComputer().setTemporarilyOffline(false);
 
-        assertFalse(plugin.isNodeShuttingDown(slave0.getNodeName()));
+        assertFalse(plugin.isNodeShuttingDown(node0.getNodeName()));
     }
 
     /**
      * Tests that build steps set up with Parameterized Trigger Plugin are
-     * allowed to finish when a slave is taken temp. offline leniently.
+     * allowed to finish when a node is taken temp. offline leniently.
      * @throws Exception if something goes wrong
      */
     @Test
@@ -286,41 +286,41 @@ public class SlaveLenientOfflineTest {
         Jenkins.getInstance().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
-        TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a slave (not the master).
+        TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a node (not the master).
 
         Node buildingOn = parent.getLastBuiltOn();
         if (buildingOn == null || buildingOn == Jenkins.getInstance()) {
             fail("Project was not built correctly");
         }
 
-        toggleLenientSlaveOffline(buildingOn);
+        toggleLenientNodeOffline(buildingOn);
 
         Node expectedNextBuildingOn = null;
-        if (buildingOn.equals(slave0)) {
-            expectedNextBuildingOn = slave1;
-        } else if (buildingOn.equals(slave1)) {
-            expectedNextBuildingOn = slave0;
+        if (buildingOn.equals(node0)) {
+            expectedNextBuildingOn = node1;
+        } else if (buildingOn.equals(node1)) {
+            expectedNextBuildingOn = node0;
         }
 
         assertSuccessfulBuilds(parent, child);
         assertEquals(expectedNextBuildingOn.getNodeName(), child.getBuildByNumber(1).getBuiltOnStr());
-        assertSlaveGoesOffline((DumbSlave)buildingOn);
+        assertNodeGoesOffline((DumbSlave)buildingOn);
     }
 
     /**
-     * Toggles the lenient offline mode for a specific slave.
+     * Toggles the lenient offline mode for a specific node.
      * @param node the node to toggle lenient offline mode for
      * @throws Exception if something goes wrong
      */
-    private void toggleLenientSlaveOffline(Node node) throws Exception {
-        String url = node.toComputer().getUrl() + ShutdownSlaveAction.URL;
+    private void toggleLenientNodeOffline(Node node) throws Exception {
+        String url = node.toComputer().getUrl() + ShutdownNodeAction.URL;
         WebClient client = jenkinsRule.createWebClient();
         client.login("alice");
         client.goTo(url);
     }
 
     /**
-     * Triggers a build on a specific slave and puts it in lenient offline mode
+     * Triggers a build on a specific node and puts it in lenient offline mode
      * while it's still building.
      * @return the build
      * @throws Exception if something goes wrong
@@ -328,13 +328,13 @@ public class SlaveLenientOfflineTest {
     private FreeStyleBuild activateShutdownDuringBuild() throws Exception {
         FreeStyleProject project = jenkinsRule.createFreeStyleProject();
         project.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
-        project.setAssignedNode(slave0);
+        project.setAssignedNode(node0);
 
         QueueTaskFuture<FreeStyleBuild> buildFuture = project.scheduleBuild2(0);
         buildFuture.waitForStart();
 
-        toggleLenientSlaveOffline(slave0);
-        if (!plugin.isNodeShuttingDown(slave0.getNodeName())) {
+        toggleLenientNodeOffline(node0);
+        if (!plugin.isNodeShuttingDown(node0.getNodeName())) {
             fail("Node should be shutting down");
         }
 
@@ -342,7 +342,7 @@ public class SlaveLenientOfflineTest {
 
         int elapsedSeconds = 0;
         while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            if (slave0.toComputer().isTemporarilyOffline()) {
+            if (node0.toComputer().isTemporarilyOffline()) {
                 break;
             }
             TimeUnit.SECONDS.sleep(1);
