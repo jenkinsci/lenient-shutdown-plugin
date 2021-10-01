@@ -36,19 +36,19 @@ import java.util.Collections;
 
 /**
  * Registers computers for
- * {@link com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownSlaveAction}s.
+ * {@link ShutdownNodeAction}s.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
 @Extension
-public class ShutdownSlaveTransientActionProvider extends TransientComputerActionFactory {
+public class ShutdownNodeTransientActionProvider extends TransientComputerActionFactory {
 
     @Override
     public Collection<? extends Action> createFor(Computer target) {
         if (target instanceof Jenkins.MasterComputer) {
             return Collections.emptyList();
         } else {
-            final RootAction rootAction = new ShutdownSlaveAction(target);
+            final RootAction rootAction = new ShutdownNodeAction(target);
             return Collections.singletonList(rootAction);
         }
     }
