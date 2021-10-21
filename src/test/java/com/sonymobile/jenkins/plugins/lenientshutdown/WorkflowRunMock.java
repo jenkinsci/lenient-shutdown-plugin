@@ -1,7 +1,7 @@
 /*
  *  The MIT License
  *
- *  Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.
+ *  Copyright (c) 2020 Intel Corporation.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -20,30 +20,24 @@
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
+ */
+
+package com.sonymobile.jenkins.plugins.lenientshutdown;
+
+import hudson.model.Run;
+
+/**
+ * Test mock of WorkflowRun.
  *
-*/
-
-f=namespace("lib/form")
-
-f.section(title:_("Lenient Shutdown")) {
-    f.entry(field: 'shutdownMessage',
-            title:_("Shutdown message"),
-            description:_("This message will be displayed in the header on all " +
-                    "pages when lenient shutdown mode is activated")) {
-        f.textbox()
-    }
-    f.entry(field: 'allowAllQueuedItems', title:_("Allow all queued items")) {
-    	f.checkbox()
-    }
-    f.entry(field: 'allowWhiteListedProjects', title:_("Allow white listed projects")) {
-    	f.checkbox()
-    }
-    f.entry(field:'whiteListedProjects', 
-    		title:_("White listed projects"),
-    		description:_("One entry per line.")) {
-    	f.textarea(value:instance.whiteListedProjectsText)
-    }
-    f.entry(field: 'allowAllJobs', title:_("Allow any Job to finish, including pipelines")) {
-      f.checkbox()
+ * @author Artur Harasimiuk &lt;artur.harasimiuk@intel.com&gt;
+ */
+public abstract class WorkflowRunMock extends Run<WorkflowJobMock, WorkflowRunMock> {
+    /**
+     * Default constructor.
+     * @param job - job
+     * @throws java.io.IOException - parent can throw
+     */
+    public WorkflowRunMock(WorkflowJobMock job) throws java.io.IOException {
+        super(job);
     }
 }
