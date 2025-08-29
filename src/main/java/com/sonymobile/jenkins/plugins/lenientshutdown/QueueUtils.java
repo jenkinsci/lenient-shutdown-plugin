@@ -36,6 +36,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.Computer;
 import hudson.model.Executor;
+import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Run;
@@ -65,7 +66,7 @@ public final class QueueUtils {
         Set<Long> queuedIds = new HashSet<Long>();
         boolean allowAllQueuedItems = ShutdownConfiguration.getInstance().isAllowAllQueuedItems();
         for (Queue.Item item : Queue.getInstance().getItems()) {
-            if (item.task instanceof AbstractProject) {
+            if (isApplicable(item.task)) {
                 if (allowAllQueuedItems) {
                     queuedIds.add(item.getId());
                 } else {
@@ -81,6 +82,22 @@ public final class QueueUtils {
             }
         }
         return Collections.unmodifiableSet(queuedIds);
+    }
+
+    /**
+     * Checks whether task is applicable for plugin operation and can continue
+     * execution when in lenient shutdown mode.
+     * If global configuration parameter allowAllJobs is set to true we
+     * consider all instances of hudson.model.Job and allow finish them,
+     * otherwise AbstractProject only is considered.
+     * @param task a Queue.Task instance we consider
+     * @return true if applicable, false otherwise
+     */
+    public static boolean isApplicable(Queue.Task task) {
+        if (ShutdownConfiguration.getInstance().isAllowAllJobs()) {
+            return task instanceof Job;
+        }
+        return task instanceof AbstractProject;
     }
 
     /**
