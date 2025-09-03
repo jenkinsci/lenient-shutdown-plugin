@@ -90,6 +90,7 @@ public class SlaveLenientOfflineTest {
         authStategy.add(Jenkins.ADMINISTER, "alice");
         jenkins.setAuthorizationStrategy(authStategy);
         jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+        jenkins.setQuietPeriod(0);
 
         plugin = PluginImpl.getInstance();
         slave0 = jenkinsRule.createOnlineSlave();
