@@ -2,4 +2,4 @@
 idiomatic_version_file_enable_tools = ["java"]
 
 [tools]
-maven="3.5.0"
+maven="3.9.6"
