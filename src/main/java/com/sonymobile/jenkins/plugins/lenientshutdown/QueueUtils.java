@@ -193,7 +193,6 @@ public final class QueueUtils {
             if (cause instanceof Cause.UpstreamCause) {
                 Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause)cause;
                 Run<?, ?> run = upstreamCause.getUpstreamRun();
-                upstreamCause.getUpstreamProject();
                 if (run != null) {
                     upstreamProjects.add(run.getQueueId());
                 }
