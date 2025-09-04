@@ -23,6 +23,7 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli
 
+import jenkins.model.Jenkins
 import org.junit.Before
 import org.junit.Rule
 import org.jvnet.hudson.test.GroovyJenkinsRule
@@ -42,7 +43,8 @@ class BaseCliTest {
 
     @Before
     void before() {
-        jenkinsCliJar = new File(WarExploder.explodedDir, "WEB-INF/jenkins-cli.jar")
+        final String jenkinsVersion = Jenkins.VERSION
+        jenkinsCliJar = new File(WarExploder.explodedDir, "WEB-INF/lib/cli-${jenkinsVersion}.jar")
         java = new File(System.getProperty("java.home"), "bin/java")
     }
 

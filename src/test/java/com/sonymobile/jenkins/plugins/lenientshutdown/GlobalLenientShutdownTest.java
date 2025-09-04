@@ -283,7 +283,7 @@ public class GlobalLenientShutdownTest {
         WebClient w = jenkinsRule.createWebClient();
         w.login("alice");
         HtmlPage managePage = w.goTo("manage");
-        assertTrue(managePage.asText().contains(ShutdownManageLink.getInstance().getDisplayName()));
+        assertTrue(managePage.asNormalizedText().contains(ShutdownManageLink.getInstance().getDisplayName()));
     }
 
     /**
