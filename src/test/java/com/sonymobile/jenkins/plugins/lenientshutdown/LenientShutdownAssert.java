@@ -35,7 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -107,7 +107,9 @@ public final class LenientShutdownAssert {
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;
         }
-        assertTrue("Node should shut down after builds are complete",
-                slave.toComputer().isTemporarilyOffline());
+        assertTrue(
+            slave.toComputer().isTemporarilyOffline(),
+            "Node should shut down after builds are complete"
+        );
     }
 }
