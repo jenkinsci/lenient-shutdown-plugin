@@ -186,7 +186,7 @@
 
     <scm>
         <connection>scm:git:ssh://github.com/jenkinsci/lenient-shutdown-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/lenient-shutdown-plugin.git</developerConnection>
+        <developerConnection>scm:git:git://git@github.com/jenkinsci/lenient-shutdown-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/lenient-shutdown-plugin</url>
       <tag>HEAD</tag>
   </scm>
