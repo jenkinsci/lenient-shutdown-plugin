@@ -45,7 +45,7 @@ public class CancelLenientQuietDownCommand extends CLICommand {
     @Override
     protected int run() throws Exception {
         ShutdownManageLink management = ShutdownManageLink.getInstance();
-        Jenkins.getInstance().checkPermission(management.getRequiredPermission());
+        Jenkins.get().checkPermission(management.getRequiredPermission());
 
         if (management.isGoingToShutdown()) {
             management.performToggleGoingToShutdown();

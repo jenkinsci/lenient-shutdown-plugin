@@ -75,7 +75,7 @@ public class PluginImpl extends Plugin {
      * @return the singleton.
      */
     public static PluginImpl getInstance() {
-        return Jenkins.getInstance().getPlugin(PluginImpl.class);
+        return Jenkins.get().getPlugin(PluginImpl.class);
     }
 
     /**

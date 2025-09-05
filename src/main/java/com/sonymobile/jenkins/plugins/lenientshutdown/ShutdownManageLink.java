@@ -87,7 +87,7 @@ public class ShutdownManageLink extends ManagementLink {
      * @return instance the ShutdownMangeLink.
      */
     public static ShutdownManageLink getInstance() {
-        List<ManagementLink> list = Jenkins.getInstance().getManagementLinks();
+        List<ManagementLink> list = Jenkins.get().getManagementLinks();
         for (ManagementLink link : list) {
             if (link instanceof ShutdownManageLink) {
                 instance = (ShutdownManageLink)link;
@@ -190,7 +190,7 @@ public class ShutdownManageLink extends ManagementLink {
      * @throws IOException if unable to redirect
      */
     public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
-        Jenkins.getInstance().checkPermission(getRequiredPermission());
+        Jenkins.get().checkPermission(getRequiredPermission());
 
         performToggleGoingToShutdown();
         rsp.sendRedirect2(req.getContextPath() + "/manage");
