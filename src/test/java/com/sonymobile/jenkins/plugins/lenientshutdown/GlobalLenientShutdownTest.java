@@ -94,6 +94,7 @@ class GlobalLenientShutdownTest {
     @BeforeEach
     void beforeEach(JenkinsRule rule) throws Exception {
         j = rule;
+        j.jenkins.setQuietPeriod(0 /* otherwise the default is 5 */);
         // can be removed with plugin-pom 5.x - see https://github.com/jenkinsci/jenkins-test-harness/pull/910
         ACL.as2(ACL.SYSTEM2);
         GlobalMatrixAuthorizationStrategy authStrategy = new GlobalMatrixAuthorizationStrategy();
