@@ -29,11 +29,14 @@ import hudson.model.AbstractProject;
 import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +57,30 @@ public final class LenientShutdownAssert {
     private LenientShutdownAssert() { }
 
     /**
+     * Waits until the {@code maxDuration} or the {@code isDone} method returns
+     * {@code true}, whichever is first.
+     *
+     * @param maxDuration a {@link Duration} instance representing how long to
+     *                    wait.
+     * @param isDone      a method that returns whether it's done.
+     * @throws InterruptedException if interrupted while sleeping.
+     */
+    private static void waitFor(
+        final Duration maxDuration,
+        final BooleanSupplier isDone
+    ) throws InterruptedException {
+        final Instant start = Instant.now();
+        final Instant end = start.plus(maxDuration);
+        while (Instant.now().isBefore(end)) {
+            final boolean allFinished = isDone.getAsBoolean();
+            if (allFinished) {
+                break;
+            }
+            TimeUnit.SECONDS.sleep(1);
+        }
+    }
+
+    /**
      * Asserts that argument projects are successfully built within a timely manner.
      * @param argumentProjects the projects to assert for success
      * @throws InterruptedException if something goes wrong
@@ -63,8 +90,7 @@ public final class LenientShutdownAssert {
         List<AbstractBuild> builds = new ArrayList<>(
                 Collections.nCopies(argumentProjects.length, null));
 
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
+        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () -> {
             boolean allFinished = true;
             for (int i = 0; i < argumentProjects.length; i++) {
                 AbstractProject project = projects.get(i);
@@ -77,13 +103,8 @@ public final class LenientShutdownAssert {
                 }
             }
 
-            if (allFinished) {
-                break;
-            }
-
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+            return allFinished;
+        });
 
         for (AbstractBuild build : builds) {
             assertNotNull(build);
@@ -97,16 +118,10 @@ public final class LenientShutdownAssert {
      * @param slave the slave to assert for
      * @throws InterruptedException if something goes wrong
      */
-    public static void assertSlaveGoesOffline(DumbSlave slave) throws InterruptedException {
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-
-            if (slave.getComputer().isTemporarilyOffline()) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+    public static void assertSlaveGoesOffline(final DumbSlave slave) throws InterruptedException {
+        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () ->
+            slave.getComputer().isTemporarilyOffline()
+        );
         assertTrue(
             slave.toComputer().isTemporarilyOffline(),
             "Node should shut down after builds are complete"
