@@ -24,6 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.MAX_DURATION;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -329,7 +330,7 @@ class GlobalLenientShutdownTest {
     ) throws InterruptedException {
         final Queue queue = Queue.getInstance();
         final AbstractProject queued = waitFor(
-            Duration.ofSeconds(TIMEOUT_SECONDS),
+            MAX_DURATION,
             () -> {
             final Item[] items = queue.getItems();
             if (items.length > 0) {
@@ -397,7 +398,7 @@ class GlobalLenientShutdownTest {
     private void waitForItemInQueue() throws InterruptedException {
         final Queue queue = Queue.getInstance();
         final boolean hasQueuedItem = waitFor(
-            Duration.ofSeconds(TIMEOUT_SECONDS),
+            MAX_DURATION,
             () -> (queue.getItems().length > 0)
         );
         if (!hasQueuedItem) {
@@ -435,7 +436,7 @@ class GlobalLenientShutdownTest {
     private void waitForAnalysisToFinish() throws InterruptedException {
         final ShutdownManageLink shutdownManage = ShutdownManageLink.getInstance();
         final boolean analysisFinished = waitFor(
-            Duration.ofSeconds(TIMEOUT_SECONDS),
+            MAX_DURATION,
             () -> !shutdownManage.isAnalyzing()
         );
         if (!analysisFinished) {

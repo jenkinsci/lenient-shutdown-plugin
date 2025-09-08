@@ -52,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public final class LenientShutdownAssert {
 
     private static final int TIMEOUT_SECONDS = 60;
+    public static final Duration MAX_DURATION =
+        Duration.ofSeconds(TIMEOUT_SECONDS);
 
     /**
      * Hiding constructor for utility class.
@@ -130,7 +132,7 @@ public final class LenientShutdownAssert {
         List<AbstractBuild> builds = new ArrayList<>(
                 Collections.nCopies(argumentProjects.length, null));
 
-        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () -> {
+        waitFor(MAX_DURATION, () -> {
             boolean allFinished = true;
             for (int i = 0; i < argumentProjects.length; i++) {
                 AbstractProject project = projects.get(i);
@@ -159,7 +161,7 @@ public final class LenientShutdownAssert {
      * @throws InterruptedException if something goes wrong
      */
     public static void assertSlaveGoesOffline(final DumbSlave slave) throws InterruptedException {
-        final boolean actual = waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () ->
+        final boolean actual = waitFor(MAX_DURATION, () ->
             slave.getComputer().isTemporarilyOffline()
         );
         assertTrue(

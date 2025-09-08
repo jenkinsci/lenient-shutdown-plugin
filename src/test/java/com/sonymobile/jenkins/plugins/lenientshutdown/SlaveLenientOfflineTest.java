@@ -24,6 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.MAX_DURATION;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
@@ -147,7 +148,7 @@ class SlaveLenientOfflineTest {
 
         project.scheduleBuild2(0);
         final CauseOfBlockage actual = waitFor(
-            Duration.ofSeconds(TIMEOUT_SECONDS),
+            MAX_DURATION,
             () -> {
             final Queue.Item queueItem = jenkinsQueue.getItem(project);
             if (queueItem != null) {
@@ -346,7 +347,7 @@ class SlaveLenientOfflineTest {
 
         FreeStyleBuild build = buildFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS); //Wait for completion
 
-        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () -> {
+        waitFor(MAX_DURATION, () -> {
             final Computer computer = slave0.toComputer();
             if (computer != null) {
                 return computer.isTemporarilyOffline();
