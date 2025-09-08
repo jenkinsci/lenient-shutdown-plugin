@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,27 +58,64 @@ public final class LenientShutdownAssert {
     private LenientShutdownAssert() { }
 
     /**
-     * Waits until the {@code maxDuration} or the {@code isDone} method returns
-     * {@code true}, whichever is first.
+     * Waits until the {@code maxDuration} or the {@code supplier} method
+     * returns {@code true} value, whichever is first.
      *
      * @param maxDuration a {@link Duration} instance representing how long to
      *                    wait.
-     * @param isDone      a method that returns whether it's done.
+     * @param supplier    a method that returns {@code true} when it is done;
+     *                    {@code false} otherwise.
+     * @return            {@code true} if {@code supplier} returned {@code true}
+     *                    before the {@code maxDuration} ran out;
+     *                    {@code false} otherwise.
      * @throws InterruptedException if interrupted while sleeping.
      */
-    private static void waitFor(
+    public static boolean waitFor(
         final Duration maxDuration,
-        final BooleanSupplier isDone
+        final BooleanSupplier supplier
+    ) throws InterruptedException {
+        final Boolean result = waitFor(
+            maxDuration,
+            () -> {
+                final boolean booleanResult = supplier.getAsBoolean();
+                // checkstyle wanted me to avoid inline conditionals
+                if (booleanResult) {
+                    return true;
+                }
+                return null;
+            }
+        );
+        return Boolean.TRUE.equals(result);
+    }
+
+    /**
+     * Waits until the {@code maxDuration} or the {@code supplier} method
+     * returns a non-{@code null} value, whichever is first.
+     *
+     * @param <T>         the type of result expected to be returned by the
+     *                    {@code supplier}
+     * @param maxDuration a {@link Duration} instance representing how long to
+     *                    wait.
+     * @param supplier    a method that returns a non-null value when done.
+     * @return            the result of {@code supplier} if was non-{@code null}
+     *                    before the {@code maxDuration} ran out;
+     *                    {@code null} otherwise.
+     * @throws InterruptedException if interrupted while sleeping.
+     */
+    public static <T> T waitFor(
+        final Duration maxDuration,
+        final Supplier<T> supplier
     ) throws InterruptedException {
         final Instant start = Instant.now();
         final Instant end = start.plus(maxDuration);
         while (Instant.now().isBefore(end)) {
-            final boolean allFinished = isDone.getAsBoolean();
-            if (allFinished) {
-                break;
+            final T result = supplier.get();
+            if (result != null) {
+                return result;
             }
             TimeUnit.SECONDS.sleep(1);
         }
+        return null;
     }
 
     /**
@@ -119,11 +157,11 @@ public final class LenientShutdownAssert {
      * @throws InterruptedException if something goes wrong
      */
     public static void assertSlaveGoesOffline(final DumbSlave slave) throws InterruptedException {
-        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () ->
+        final boolean actual = waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () ->
             slave.getComputer().isTemporarilyOffline()
         );
         assertTrue(
-            slave.toComputer().isTemporarilyOffline(),
+            actual,
             "Node should shut down after builds are complete"
         );
     }
