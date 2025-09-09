@@ -52,7 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public final class LenientShutdownAssert {
 
     private static final int TIMEOUT_SECONDS = 60;
-    public static final Duration MAX_DURATION =
+    private static final int CHECK_INTERVAL_MILLIS = 100;
+    static final Duration MAX_DURATION =
         Duration.ofSeconds(TIMEOUT_SECONDS);
 
     /**
@@ -117,7 +118,7 @@ public final class LenientShutdownAssert {
             if (result != null) {
                 return result;
             }
-            TimeUnit.SECONDS.sleep(1);
+            TimeUnit.MILLISECONDS.sleep(CHECK_INTERVAL_MILLIS);
         }
         return null;
     }
