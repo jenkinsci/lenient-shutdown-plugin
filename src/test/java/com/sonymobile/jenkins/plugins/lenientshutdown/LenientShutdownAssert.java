@@ -24,6 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Result;
@@ -102,6 +103,7 @@ public final class LenientShutdownAssert {
      *                    {@code null} otherwise.
      * @throws InterruptedException if interrupted while sleeping.
      */
+    @CheckForNull
     public static <T> T waitFor(
         final Duration maxDuration,
         final Supplier<T> supplier

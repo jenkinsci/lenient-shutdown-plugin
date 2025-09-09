@@ -26,14 +26,18 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import hudson.model.Computer;
+import hudson.model.queue.CauseOfBlockage;
 import hudson.security.ACL;
 import org.jenkinsci.plugins.matrixauth.AuthorizationType;
 import org.jenkinsci.plugins.matrixauth.PermissionEntry;
@@ -142,19 +146,17 @@ class SlaveLenientOfflineTest {
         toggleLenientSlaveOffline(slave1);
 
         project.scheduleBuild2(0);
-        Queue.Item queueItem = jenkinsQueue.getItem(project);
-
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            queueItem = jenkinsQueue.getItem(project);
-            if (queueItem.getCauseOfBlockage() != null) {
-                break;
+        final CauseOfBlockage actual = waitFor(
+            Duration.ofSeconds(TIMEOUT_SECONDS),
+            () -> {
+            final Queue.Item queueItem = jenkinsQueue.getItem(project);
+            if (queueItem != null) {
+                return queueItem.getCauseOfBlockage();
             }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+            return null;
+        });
 
-        assertNotNull(queueItem.getCauseOfBlockage());
+        assertNotNull(actual);
     }
 
     /**
@@ -344,14 +346,13 @@ class SlaveLenientOfflineTest {
 
         FreeStyleBuild build = buildFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS); //Wait for completion
 
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            if (slave0.toComputer().isTemporarilyOffline()) {
-                break;
+        waitFor(Duration.ofSeconds(TIMEOUT_SECONDS), () -> {
+            final Computer computer = slave0.toComputer();
+            if (computer != null) {
+                return computer.isTemporarilyOffline();
             }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+            return false;
+        });
         return build;
     }
 }
