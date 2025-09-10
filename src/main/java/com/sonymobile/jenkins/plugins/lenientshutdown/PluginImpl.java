@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -106,6 +107,10 @@ public class PluginImpl extends Plugin {
      *
      * @param computer the computer.
      */
+    @SuppressFBWarnings(
+        value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+        justification = "Fire and forget for asynchronous processing"
+    )
     public void setNodeOffline(final Computer computer) {
         if (computer == null) {
             return;
@@ -151,10 +156,8 @@ public class PluginImpl extends Plugin {
     public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
         boolean isPermitted = false;
         Set<Long> permittedQueueItemIds = getPermittedQueuedItemIds(nodeName);
-        if (permittedQueueItemIds != null) {
-            Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
-            isPermitted = !intersection.isEmpty();
-        }
+        Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
+        isPermitted = !intersection.isEmpty();
         return isPermitted;
     }
 

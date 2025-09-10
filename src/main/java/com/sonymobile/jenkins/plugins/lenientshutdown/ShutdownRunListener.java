@@ -60,28 +60,26 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
         Executor executor = r.getExecutor();
         if (executor != null) {
             final Computer computer = executor.getOwner();
-            if (computer != null) {
-                final String nodeName = computer.getName();
+            final String nodeName = computer.getName();
 
-                if (plugin.isNodeShuttingDown(nodeName)
-                    && !Jenkins.get().isTerminating()) {
-                    //Schedule checking if all builds are completed on the build node after a delay
-                    Runnable isNodeIdleTask = new Runnable() {
-                        @Override
-                        public void run() {
-                            if (plugin.isNodeShuttingDown(nodeName) && !computer.isTemporarilyOffline()
-                                    && !QueueUtils.isBuilding(computer)
-                                    && !QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
-                                logger.log(Level.INFO, "Node {0} idle; setting offline since lenient "
-                                        + "shutdown was active for this node", nodeName);
+            if (plugin.isNodeShuttingDown(nodeName)
+                && !Jenkins.get().isTerminating()) {
+                //Schedule checking if all builds are completed on the build node after a delay
+                Runnable isNodeIdleTask = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (plugin.isNodeShuttingDown(nodeName) && !computer.isTemporarilyOffline()
+                                && !QueueUtils.isBuilding(computer)
+                                && !QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
+                            logger.log(Level.INFO, "Node {0} idle; setting offline since lenient "
+                                    + "shutdown was active for this node", nodeName);
 
-                                User user = plugin.getOfflineByUser(nodeName);
-                                computer.setTemporarilyOffline(true, new LenientOfflineCause(user));
-                            }
+                            User user = plugin.getOfflineByUser(nodeName);
+                            computer.setTemporarilyOffline(true, new LenientOfflineCause(user));
                         }
-                    };
-                    Timer.get().schedule(isNodeIdleTask, TASK_DELAY_SECONDS, TimeUnit.SECONDS);
-                }
+                    }
+                };
+                Timer.get().schedule(isNodeIdleTask, TASK_DELAY_SECONDS, TimeUnit.SECONDS);
             }
         }
 

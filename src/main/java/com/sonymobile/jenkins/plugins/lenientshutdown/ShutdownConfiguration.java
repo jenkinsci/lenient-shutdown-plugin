@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -64,6 +65,11 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Constructor, loads persisted configuration.
      */
+    @SuppressFBWarnings(
+        value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
+        justification = "The #load() method is documented as: "
+            + "'The constructor of the derived class must call this method.'"
+    )
     public ShutdownConfiguration() {
         load();
     }

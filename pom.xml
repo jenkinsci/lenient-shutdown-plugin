@@ -131,6 +131,8 @@
         <jenkins.version>${jenkins.baseline}.3</jenkins.version>
         <!-- takes effect with plugin-pom > 5.22 -->
         <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
+        <spotbugs.effort>Max</spotbugs.effort>
+        <spotbugs.threshold>Low</spotbugs.threshold>
     </properties>
 
     <dependencyManagement>

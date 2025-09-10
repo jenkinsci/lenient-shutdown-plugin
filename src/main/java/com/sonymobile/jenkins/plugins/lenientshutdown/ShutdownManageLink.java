@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -200,6 +201,10 @@ public class ShutdownManageLink extends ManagementLink {
      * Toggles the flag and prepares for lenient shutdown if needed.
      *
      */
+    @SuppressFBWarnings(
+        value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+        justification = "Fire and forget for asynchronous processing"
+    )
     public void performToggleGoingToShutdown() {
         toggleGoingToShutdown();
         if (isGoingToShutdown()) {
