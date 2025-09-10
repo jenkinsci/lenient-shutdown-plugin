@@ -61,7 +61,7 @@ class LenientOnlineNodeCommandTest extends BaseCliTest {
     @Test
     void testRunFromTemporary() throws Exception {
         DumbSlave slave = j.createOnlineSlave();
-        slave.toComputer().setTemporarilyOffline(true, new OfflineCause.ByCLI("Bomb"));
+        slave.toComputer().setTemporaryOfflineCause(new OfflineCause.ByCLI("Bomb"));
         assertEquals(0, new ProcessBuilder(cmd("lenient-online-node", slave.getNodeName())).start().waitFor(),
                 "Cmd error");
         assertFalse(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Should be online");

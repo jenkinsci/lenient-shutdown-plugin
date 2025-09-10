@@ -75,7 +75,7 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
                                     + "shutdown was active for this node", nodeName);
 
                             User user = plugin.getOfflineByUser(nodeName);
-                            computer.setTemporarilyOffline(true, new LenientOfflineCause(user));
+                            computer.setTemporaryOfflineCause(new LenientOfflineCause(user));
                         }
                     }
                 };

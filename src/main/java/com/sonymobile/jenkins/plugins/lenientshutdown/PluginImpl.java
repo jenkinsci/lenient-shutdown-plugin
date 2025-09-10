@@ -142,7 +142,7 @@ public class PluginImpl extends Plugin {
             if (currentUser == null) {
                 currentUser = User.getUnknown();
             }
-            computer.setTemporarilyOffline(true, new LenientOfflineCause(currentUser));
+            computer.setTemporaryOfflineCause(new LenientOfflineCause(currentUser));
         }
     }
 
