@@ -133,6 +133,8 @@
         <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
         <spotbugs.effort>Max</spotbugs.effort>
         <spotbugs.threshold>Low</spotbugs.threshold>
+        <!-- https://stackoverflow.com/a/18390459 -->
+        <linkXRef>false</linkXRef>
     </properties>
 
     <dependencyManagement>
