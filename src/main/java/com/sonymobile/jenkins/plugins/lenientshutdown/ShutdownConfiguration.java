@@ -31,7 +31,7 @@ import java.util.TreeSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import hudson.Extension;
 import jenkins.model.GlobalConfiguration;
@@ -185,7 +185,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
      * @throws FormException if the form was malformed
      */
     @Override
-    public boolean configure(StaplerRequest staplerRequest, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest2 staplerRequest, JSONObject json) throws FormException {
         shutdownMessage = json.getString("shutdownMessage");
         allowAllQueuedItems = json.getBoolean("allowAllQueuedItems");
         allowWhiteListedProjects = json.getBoolean("allowWhiteListedProjects");
