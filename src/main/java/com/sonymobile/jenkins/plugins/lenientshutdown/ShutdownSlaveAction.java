@@ -24,7 +24,6 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
-import hudson.Functions;
 import hudson.model.Computer;
 import hudson.model.RootAction;
 import hudson.util.HttpResponses;
@@ -48,12 +47,12 @@ public class ShutdownSlaveAction implements RootAction {
     /**
      * Icon visible when it's possible to enable lenient shutdown for a slave.
      */
-    public static final String ENABLE_ICON = "/images/system-log-out-small.png";
+    public static final String ENABLE_ICON = "symbol-power icon-md";
 
     /**
      * Icon visible when it's possible to disable lenient shutdown for a slave.
      */
-    public static final String DISABLE_ICON = "edit-delete.png";
+    public static final String DISABLE_ICON = "symbol-none icon-md";
 
     private final Computer computer;
 
@@ -74,7 +73,7 @@ public class ShutdownSlaveAction implements RootAction {
             if (plugin.isNodeShuttingDown(computer.getName()) && computer.hasPermission(Computer.CONNECT)) {
                 icon =  DISABLE_ICON;
             } else if (computer.hasPermission(Computer.DISCONNECT)) {
-                icon = Functions.getResourcePath() + "/plugin/" + getUrlName() + ENABLE_ICON;
+                icon = ENABLE_ICON;
             }
         }
         return icon;

@@ -283,7 +283,7 @@ public class GlobalLenientShutdownTest {
         WebClient w = jenkinsRule.createWebClient();
         w.login("alice");
         HtmlPage managePage = w.goTo("manage");
-        assertTrue(managePage.asText().contains(ShutdownManageLink.getInstance().getDisplayName()));
+        assertTrue(managePage.asNormalizedText().contains(ShutdownManageLink.getInstance().getDisplayName()));
     }
 
     /**
@@ -319,12 +319,16 @@ public class GlobalLenientShutdownTest {
      * @param project the project to wait for
      * @throws InterruptedException if interupted
      */
-    private void waitForProjectInQueue(FreeStyleProject project) throws InterruptedException {
+    private void waitForProjectInQueue(final FreeStyleProject project) throws InterruptedException {
+        final Queue queue = Queue.getInstance();
         int elapsedSeconds = 0;
         while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            AbstractProject firstQueued = (AbstractProject)Queue.getInstance().getItems()[0].task;
-            if (firstQueued.equals(project)) {
-                break;
+            final Item[] items = queue.getItems();
+            if (items.length > 0) {
+                AbstractProject firstQueued = (AbstractProject)items[0].task;
+                if (firstQueued.equals(project)) {
+                    break;
+                }
             }
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;

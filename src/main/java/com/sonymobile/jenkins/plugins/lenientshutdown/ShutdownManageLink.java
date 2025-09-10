@@ -80,7 +80,7 @@ public class ShutdownManageLink extends ManagementLink {
     /**
      * Icon used by this plugin.
      */
-    private static final String ICON = "system-log-out.png";
+    private static final String ICON = "symbol-power";
 
     /**
      * Returns the instance of ShutdownMangeLink.

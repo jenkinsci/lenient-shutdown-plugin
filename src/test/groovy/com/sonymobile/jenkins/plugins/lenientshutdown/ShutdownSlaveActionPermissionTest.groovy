@@ -51,17 +51,19 @@ class ShutdownSlaveActionPermissionTest {
     /**
      * The XPath to the left side icon
      */
-    static final String IMG_XPATH = "//a[@class='task-icon-link' and contains(@href, 'lenientshutdown')]/img[contains(@src,'system-log-out-small.png')]"
+    static final String IMG_XPATH = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]" +
+        "/span[@class='task-link-text' and text()[contains(., 'Take')]]"
 
     /**
      * The XPath to the left side cancel icon
      */
-    static final String IMG_XPATH_CANCEL = "//a[@class='task-icon-link' and contains(@href, 'lenientshutdown')]/img[contains(@src,'edit-delete.png')]"
+    static final String IMG_XPATH_CANCEL = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]" +
+        "/span[@class='task-link-text' and text()[contains(., 'Cancel')]]"
 
     /**
      * The XPath to the left side text link
      */
-    static final String LINK_TEXT_XPATH = "//a[@class='task-link' and contains(@href, 'lenientshutdown')]"
+    static final String LINK_TEXT_XPATH = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]"
 
     /**
      * Create a slave to test on.

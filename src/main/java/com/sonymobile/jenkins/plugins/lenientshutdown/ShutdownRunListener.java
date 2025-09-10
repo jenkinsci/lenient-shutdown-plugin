@@ -35,6 +35,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.model.listeners.RunListener;
+import jenkins.model.Jenkins;
 import jenkins.util.Timer;
 
 /**
@@ -62,7 +63,8 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
             if (computer != null) {
                 final String nodeName = computer.getName();
 
-                if (plugin.isNodeShuttingDown(nodeName)) {
+                if (plugin.isNodeShuttingDown(nodeName)
+                    && !Jenkins.get().isTerminating()) {
                     //Schedule checking if all builds are completed on the build node after a delay
                     Runnable isNodeIdleTask = new Runnable() {
                         @Override
