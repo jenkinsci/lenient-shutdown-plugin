@@ -52,6 +52,7 @@ import jenkins.security.SecurityContextExecutorService;
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
+@SuppressWarnings("deprecation" /* there's no way around it */)
 public class PluginImpl extends Plugin {
 
     /**
