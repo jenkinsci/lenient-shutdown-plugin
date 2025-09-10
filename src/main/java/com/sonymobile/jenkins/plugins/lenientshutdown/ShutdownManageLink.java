@@ -36,8 +36,8 @@ import java.util.concurrent.Executors;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.CollectionUtils;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 import hudson.Extension;
 import hudson.model.ManagementLink;
@@ -190,7 +190,7 @@ public class ShutdownManageLink extends ManagementLink {
      * @param rsp StaplerResponse
      * @throws IOException if unable to redirect
      */
-    public synchronized void doIndex(StaplerRequest req, StaplerResponse rsp) throws IOException {
+    public synchronized void doIndex(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
         Jenkins.get().checkPermission(getRequiredPermission());
 
         performToggleGoingToShutdown();
