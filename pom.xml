@@ -171,7 +171,7 @@
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/lenient-shutdown-plugin.git</connection>
+        <connection>scm:git:https://github.com/jenkinsci/lenient-shutdown-plugin.git</connection>
         <developerConnection>scm:git:git://git@github.com/jenkinsci/lenient-shutdown-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/lenient-shutdown-plugin</url>
       <tag>HEAD</tag>
