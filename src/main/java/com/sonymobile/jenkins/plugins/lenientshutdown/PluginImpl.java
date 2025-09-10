@@ -81,6 +81,18 @@ public class PluginImpl extends Plugin {
     }
 
     /**
+     * Helper to replace the deprecated Computer#isTemporarilyOffline method.
+     *
+     * @param computer the {@link Computer} to query.
+     * @return {@code true} if this node is marked temporarily offline by the
+     *         user; if {@code false}, the node could be disconnected.
+     */
+    static boolean isTemporarilyOffline(final Computer computer) {
+        var node = computer.getNode();
+        return node != null && node.getTemporaryOfflineCause() != null;
+    }
+
+    /**
      * Checks if argument node is shutting down leniently.
      * @param nodeName the slave name to check
      * @return true if node is shutting down, otherwise false

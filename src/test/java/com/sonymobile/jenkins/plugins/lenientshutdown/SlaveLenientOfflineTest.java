@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.MAX_DURATION;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.isTemporarilyOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.TimeUnit;
 
-import hudson.model.Computer;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.slaves.OfflineCause;
 import hudson.security.ACL;
@@ -117,8 +117,8 @@ class SlaveLenientOfflineTest {
     @Test
     void testActivateShutdownNoBuilds() throws Exception {
         toggleLenientSlaveOffline(slave0);
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
-        assertFalse(slave1.toComputer().isTemporarilyOffline());
+        assertTrue(isTemporarilyOffline(slave0));
+        assertFalse(isTemporarilyOffline(slave1));
     }
 
     /**
@@ -129,7 +129,7 @@ class SlaveLenientOfflineTest {
     void testActivateShutdownDuringBuild() throws Exception {
         FreeStyleBuild build = activateShutdownDuringBuild();
 
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
+        assertTrue(isTemporarilyOffline(slave0));
         assertEquals(Result.SUCCESS, build.getResult());
     }
 
@@ -348,11 +348,7 @@ class SlaveLenientOfflineTest {
         FreeStyleBuild build = buildFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS); //Wait for completion
 
         waitFor(MAX_DURATION, () -> {
-            final Computer computer = slave0.toComputer();
-            if (computer != null) {
-                return computer.isTemporarilyOffline();
-            }
-            return false;
+            return isTemporarilyOffline(slave0);
         });
         return build;
     }

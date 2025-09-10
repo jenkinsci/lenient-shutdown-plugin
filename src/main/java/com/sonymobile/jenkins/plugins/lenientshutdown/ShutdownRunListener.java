@@ -68,7 +68,7 @@ public class ShutdownRunListener<R extends Run> extends RunListener<R> {
                 Runnable isNodeIdleTask = new Runnable() {
                     @Override
                     public void run() {
-                        if (plugin.isNodeShuttingDown(nodeName) && !computer.isTemporarilyOffline()
+                        if (plugin.isNodeShuttingDown(nodeName) && !PluginImpl.isTemporarilyOffline(computer)
                                 && !QueueUtils.isBuilding(computer)
                                 && !QueueUtils.hasNodeExclusiveItemInQueue(computer)) {
                             logger.log(Level.INFO, "Node {0} idle; setting offline since lenient "
