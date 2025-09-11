@@ -11,13 +11,13 @@
     <artifactId>lenientshutdown</artifactId>
     <version>1.1.2-SNAPSHOT</version>
     <name>Lenient shutdown plugin</name>
-    <url>http://wiki.jenkins-ci.org/display/JENKINS/Lenient+shutdown+plugin</url>
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/Lenient+shutdown+plugin</url>
     <packaging>hpi</packaging>
 
     <licenses>
         <license>
             <name>MIT</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <url>https://www.opensource.org/licenses/mit-license.php</url>
             <comments>Copyright (c) 2014 Sony Mobile Communications Inc. All rights reserved.</comments>
         </license>
     </licenses>
@@ -28,7 +28,7 @@
             <name>Fredrik Persson</name>
             <email>fredrik6.persson@sonymobile.com</email>
             <organization>Sony Mobile Communications</organization>
-            <url>http://www.linkedin.com/in/fpersson</url>
+            <url>https://www.linkedin.com/in/fpersson</url>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -40,7 +40,7 @@
             <name>Joakim Ahle</name>
             <email>joakim.ahle@sonymobile.com</email>
             <organization>Sony Mobile Communications</organization>
-            <url>http://www.linkedin.com/in/joakimahle</url>
+            <url>https://www.linkedin.com/in/joakimahle</url>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -52,7 +52,7 @@
             <name>Robert Sandell</name>
             <email>robert.sandell@sonymobile.com</email>
             <organization>Sony Mobile Communications</organization>
-            <url>http://www.linkedin.com/in/robertsandell</url>
+            <url>https://www.linkedin.com/in/robertsandell</url>
             <roles>
                 <role>architect</role>
                 <role>maintainer</role>
@@ -65,10 +65,6 @@
         <repository>
             <id>repo.jenkins-ci.org</id>
             <url>https://repo.jenkins-ci.org/public/</url>
-        </repository>
-        <repository>
-            <id>powermock-repo</id>
-            <url>http://powermock.googlecode.com/svn/repo/</url>
         </repository>
     </repositories>
 
@@ -146,7 +142,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jenkins.version>2.361.4</jenkins.version>
-        <powermock.version>1.5.4</powermock.version>
+        <!-- takes effect with plugin-pom > 5.22 -->
+        <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     </properties>
 
     <dependencyManagement>
@@ -162,18 +159,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito</artifactId>
-            <version>${powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
