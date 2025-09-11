@@ -32,6 +32,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -42,8 +43,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.SleepBuilder;
-
-import org.powermock.api.mockito.PowerMockito;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
@@ -640,7 +639,7 @@ public class GlobalLenientShutdownTest {
         AbstractProject project = jenkinsRule.createFreeStyleProject();
         assertTrue(QueueUtils.isApplicable(project));
 
-        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        WorkflowJobMock job = mock(WorkflowJobMock.class);
         assertFalse(QueueUtils.isApplicable(job));
     }
     /**
@@ -656,7 +655,7 @@ public class GlobalLenientShutdownTest {
         AbstractProject project = jenkinsRule.createFreeStyleProject();
         assertTrue(QueueUtils.isApplicable(project));
 
-        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        WorkflowJobMock job = mock(WorkflowJobMock.class);
         assertTrue(QueueUtils.isApplicable(job));
     }
 }
