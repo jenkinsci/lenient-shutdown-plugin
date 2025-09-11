@@ -23,25 +23,32 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
+import org.junit.jupiter.api.Test;
+
 import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link CancelLenientQuietDownCommand}.
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-public class CancelLenientQuietDownCommandTest extends BaseCliTest {
+class CancelLenientQuietDownCommandTest extends BaseCliTest {
 
     /**
      * Tests the command
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void runCommand() throws Exception {
+    void runCommand() throws Exception {
         ShutdownManageLink.getInstance().performToggleGoingToShutdown();
-        assert ShutdownManageLink.getInstance().isGoingToShutdown() : "Before condition not met";
+        assertTrue(ShutdownManageLink.getInstance().isGoingToShutdown(), "Before condition not met");
 
-        assert new ProcessBuilder(cmd("cancel-lenient-quiet-down")).start().waitFor() == 0 : "Command exited wrongly";
-        assert !ShutdownManageLink.getInstance().isGoingToShutdown() : "Should not still be shutting down";
+        assertEquals(0, new ProcessBuilder(cmd("cancel-lenient-quiet-down")).start().waitFor(),
+                "Command exited wrongly");
+        assertFalse(ShutdownManageLink.getInstance().isGoingToShutdown(), "Should not still be shutting down");
     }
 }

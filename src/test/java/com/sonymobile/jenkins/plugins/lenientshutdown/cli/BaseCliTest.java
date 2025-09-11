@@ -24,10 +24,11 @@
 package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
 import jenkins.model.Jenkins;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.BeforeEach;
+
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WarExploder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,27 +40,39 @@ import java.util.List;
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
+@WithJenkins
 abstract class BaseCliTest {
 
-    @Rule
-    public JenkinsRule jenkins = new JenkinsRule();
+    protected JenkinsRule j;
 
     private File jenkinsCliJar;
     private File java;
 
-    @Before
-    public void before() throws Exception {
+    /**
+     * Setup tests.
+     * @param rule the jenkins rule
+     * @throws Exception if something goes wrong
+     */
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
         jenkinsCliJar = new File(WarExploder.getExplodedDir(), "WEB-INF/lib/cli-" + Jenkins.VERSION + ".jar");
         java = new File(System.getProperty("java.home"), "bin/java");
     }
 
+    /**
+     * Build a command.
+     * @param cmd the cmd
+     * @return the command
+     * @throws Exception if something goes wrong
+     */
     protected String[] cmd(String... cmd) throws Exception {
         List<String> prefix = new ArrayList<>();
         prefix.add(java.getPath());
         prefix.add("-jar");
         prefix.add(jenkinsCliJar.getPath());
         prefix.add("-s");
-        prefix.add(jenkins.getURL().toString());
+        prefix.add(j.getURL().toString());
 
         prefix.addAll(Arrays.asList(cmd));
 

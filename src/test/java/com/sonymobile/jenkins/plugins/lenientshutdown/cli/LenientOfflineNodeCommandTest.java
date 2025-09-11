@@ -27,40 +27,50 @@ import com.sonymobile.jenkins.plugins.lenientshutdown.PluginImpl;
 import hudson.model.FreeStyleProject;
 import hudson.slaves.DumbSlave;
 import org.jvnet.hudson.test.SleepBuilder;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link LenientOfflineNodeCommand}.
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-public class LenientOfflineNodeCommandTest extends BaseCliTest {
+class LenientOfflineNodeCommandTest extends BaseCliTest {
+
+    public static final int SLEEP_TIME = 100000;
 
     /**
      * Tests the command to bring it offline temporary i.e. while no build is running.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testRunTemporary() throws Exception {
-        DumbSlave slave = jenkins.createOnlineSlave();
-        assert new ProcessBuilder(cmd("lenient-offline-node", slave.getNodeName())).start().waitFor() == 0 : "Cmd Error";
-        assert slave.toComputer().isOffline() : "Should be offline";
+    void testRunTemporary() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
+        assertEquals(0, new ProcessBuilder(cmd("lenient-offline-node", slave.getNodeName())).start().waitFor(),
+                "Cmd Error");
+        assertTrue(slave.toComputer().isOffline(), "Should be offline");
     }
 
 
     /**
      * Tests the command to bring it offline leniently i.e. while a build is running.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testRunLenient() throws Exception {
-        DumbSlave slave = jenkins.createOnlineSlave();
+    void testRunLenient() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
 
-        FreeStyleProject project = jenkins.createFreeStyleProject();
-        project.getBuildersList().add(new SleepBuilder(100000));
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.getBuildersList().add(new SleepBuilder(SLEEP_TIME));
         project.setAssignedLabel(slave.getSelfLabel());
         project.scheduleBuild2(0);
 
-        assert new ProcessBuilder(cmd("lenient-offline-node", slave.getNodeName())).start().waitFor() == 0 : "Cmd Error";
-        assert PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()) : "Should be lenient offline";
+        assertEquals(0, new ProcessBuilder(cmd("lenient-offline-node", slave.getNodeName())).start().waitFor(),
+                "Cmd Error");
+        assertTrue(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Should be lenient offline");
     }
 
 }

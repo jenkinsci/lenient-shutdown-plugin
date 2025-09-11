@@ -23,6 +23,12 @@
  */
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.concurrent.TimeUnit;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
@@ -30,14 +36,18 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
+import hudson.security.ACL;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import jenkins.model.Jenkins;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.jenkinsci.plugins.matrixauth.AuthorizationType;
+import org.jenkinsci.plugins.matrixauth.PermissionEntry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 
 /**
@@ -45,245 +55,284 @@ import org.jvnet.hudson.test.SleepBuilder;
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-public class ShutdownSlaveActionPermissionTest {
+@WithJenkins
+class ShutdownSlaveActionPermissionTest {
 
-    @Rule
-    public JenkinsRule jenkins = new JenkinsRule();
+    public static final int SLEEP_TIME = 100000;
+    private JenkinsRule j;
     private DumbSlave slave;
 
     /**
      * The XPath to the left side icon
      */
-    private static final String IMG_XPATH = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]" +
-        "/span[@class='task-link-text' and text()[contains(., 'Take')]]";
+    private static final String IMG_XPATH =
+            "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]"
+            + "/span[@class='task-link-text' and text()[contains(., 'Take')]]";
 
     /**
      * The XPath to the left side cancel icon
      */
-    private static final String IMG_XPATH_CANCEL = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]" +
-        "/span[@class='task-link-text' and text()[contains(., 'Cancel')]]";
+    private static final String IMG_XPATH_CANCEL =
+            "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]"
+            + "/span[@class='task-link-text' and text()[contains(., 'Cancel')]]";
 
     /**
      * The XPath to the left side text link
      */
-    private static final String LINK_TEXT_XPATH = "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]";
+    private static final String LINK_TEXT_XPATH =
+            "//a[contains(@class, 'task-link') and contains(@href, 'lenientshutdown')]";
 
     /**
      * Create a slave to test on.
+     * @param rule the jenkins rule
+     * @throws Exception if something goes wrong
      */
-    @Before
-    public void before() throws Exception {
-        slave = jenkins.createOnlineSlave();
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
+        // can be removed with plugin-pom 5.x - see https://github.com/jenkinsci/jenkins-test-harness/pull/910
+        ACL.as2(ACL.SYSTEM2);
+        slave = j.createOnlineSlave();
     }
 
     /**
      * Tests that the icon is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetIconFileName() throws Exception {
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+    void testGetIconFileName() throws Exception {
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(IMG_XPATH);
-        assert el != null : "No img found";
+        assertNotNull(el, "No img found");
     }
 
     /**
      * Tests that the link is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetDisplayName() throws Exception {
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+    void testGetDisplayName() throws Exception {
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el != null : "No link found";
+        assertNotNull(el, "No link found");
     }
 
     /**
      * Tests that the icon is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetIconFileNameCancel() throws Exception {
+    void testGetIconFileNameCancel() throws Exception {
         PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(IMG_XPATH_CANCEL);
-        assert el != null : "No img found";
+        assertNotNull(el, "No img found");
     }
 
     /**
      * Tests that the link is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetDisplayNameCancel() throws Exception {
+    void testGetDisplayNameCancel() throws Exception {
         PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el != null : "No link found";
+        assertNotNull(el, "No link found");
     }
 
     /**
      * Tests that the link can be clicked when the user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoIndex() throws Exception {
+    void testDoIndex() throws Exception {
         startBuild();
-        jenkins.createWebClient().getPage(slave, ShutdownSlaveAction.URL);
-        assert PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()) : "Unaffected";
+        j.createWebClient().getPage(slave, ShutdownSlaveAction.URL);
+        assertTrue(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Unaffected");
     }
 
     //Tests below are with security set
 
     /**
      * Tests that the icon is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetIconFileNameNoPermission() throws Exception {
+    void testGetIconFileNameNoPermission() throws Exception {
         setupSecurity();
         //As anonymous
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(IMG_XPATH);
-        assert el == null : "img found";
+        assertNull(el, "img found");
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave);
+        page = j.createWebClient().login("alice").getPage(slave);
         el = page.getFirstByXPath(IMG_XPATH);
-        assert el != null : "No img found";
+        assertNotNull(el, "No img found");
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave);
+        page = j.createWebClient().login("bobby").getPage(slave);
         el = page.getFirstByXPath(IMG_XPATH);
-        assert el == null : "img found";
+        assertNull(el, "img found");
     }
 
 
     /**
      * Tests that the link is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetDisplayNameNoPermission() throws Exception {
+    void testGetDisplayNameNoPermission() throws Exception {
         setupSecurity();
         //As anonymous
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el == null : "link found";
+        assertNull(el, "link found");
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave);
+        page = j.createWebClient().login("alice").getPage(slave);
         el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el != null : "No link found";
+        assertNotNull(el, "No link found");
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave);
+        page = j.createWebClient().login("bobby").getPage(slave);
         el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el == null : "link found";
+        assertNull(el, "link found");
     }
 
     /**
      * Tests that the icon is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetIconFileNameCancelNoPermission() throws Exception {
+    void testGetIconFileNameCancelNoPermission() throws Exception {
         setupSecurity();
         PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
         //As anonymous
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(IMG_XPATH_CANCEL);
-        assert el == null : "img found";
+        assertNull(el, "img found");
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave);
+        page = j.createWebClient().login("alice").getPage(slave);
         el = page.getFirstByXPath(IMG_XPATH_CANCEL);
-        assert el != null : "No img found";
+        assertNotNull(el, "No img found");
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave);
+        page = j.createWebClient().login("bobby").getPage(slave);
         el = page.getFirstByXPath(IMG_XPATH_CANCEL);
-        assert el == null : "img found";
+        assertNull(el, "img found");
     }
 
     /**
      * Tests that the link is visible when user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testGetDisplayNameCancelNoPermission() throws Exception {
+    void testGetDisplayNameCancelNoPermission() throws Exception {
         setupSecurity();
         PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
         //As anonymous
-        HtmlPage page = jenkins.createWebClient().getPage(slave);
+        HtmlPage page = j.createWebClient().getPage(slave);
         HtmlElement el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el == null : "link found";
+        assertNull(el, "link found");
 
         //As alice
-        page = jenkins.createWebClient().login("alice").getPage(slave);
+        page = j.createWebClient().login("alice").getPage(slave);
         el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el != null : "No link found";
+        assertNotNull(el, "No link found");
 
         //As bobby
-        page = jenkins.createWebClient().login("bobby").getPage(slave);
+        page = j.createWebClient().login("bobby").getPage(slave);
         el = page.getFirstByXPath(LINK_TEXT_XPATH);
-        assert el == null : "link found";
+        assertNull(el, "link found");
     }
 
     /**
      * Tests that the link can't be clicked when the user has no permission.
+     * @throws Exception if something goes wrong
      */
-    @Test(expected = FailingHttpStatusCodeException.class)
-    public void testDoIndexNoPermissionAnonymous() throws Exception {
+    @Test
+    void testDoIndexNoPermissionAnonymous() throws Exception {
         setupSecurity();
-        jenkins.createWebClient().getPage(slave, ShutdownSlaveAction.URL);
+        // should be assertThrows() but checkstyle makes life harder than it needs to be
+        try {
+            j.createWebClient().getPage(slave, ShutdownSlaveAction.URL);
+            fail("Expected FailingHttpStatusCodeException");
+        } catch (FailingHttpStatusCodeException ex) {
+            // expected
+            assertNotNull(ex);
+        }
     }
 
     /**
      * Tests that the link can't be clicked when the user has permission.
+     * @throws Exception if something goes wrong
      */
-    @Test(expected = FailingHttpStatusCodeException.class)
-    public void testDoIndexNoPermissionBobby() throws Exception {
+    @Test
+    void testDoIndexNoPermissionBobby() throws Exception {
         setupSecurity();
-        jenkins.createWebClient().login("bobby").getPage(slave, ShutdownSlaveAction.URL);
+        // should be assertThrows() but checkstyle makes life harder than it needs to be
+        try {
+            j.createWebClient().login("bobby").getPage(slave, ShutdownSlaveAction.URL);
+            fail("Expected FailingHttpStatusCodeException");
+        } catch (FailingHttpStatusCodeException ex) {
+            // expected
+            assertNotNull(ex);
+        }
     }
 
     /**
      * Tests that the link can be clicked when the user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoIndexPermissionAlice() throws Exception {
+    void testDoIndexPermissionAlice() throws Exception {
         setupSecurity();
-        JenkinsRule.WebClient client = jenkins.createWebClient().login("alice");
+        JenkinsRule.WebClient client = j.createWebClient().login("alice");
         startBuild();
-		TimeUnit.SECONDS.sleep(1);
-        
+        TimeUnit.SECONDS.sleep(1);
+
         client.getPage(slave, ShutdownSlaveAction.URL);
-        
-        assert PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()) : "Unaffected";
+
+        assertTrue(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Unaffected");
     }
 
     /**
      * Tests that the link can be clicked when the user has permission.
+     * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoIndexPermissionCancelAlice() throws Exception {
+    void testDoIndexPermissionCancelAlice() throws Exception {
         setupSecurity();
-        JenkinsRule.WebClient client = jenkins.createWebClient().login("alice");
+        JenkinsRule.WebClient client = j.createWebClient().login("alice");
         PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
         client.getPage(slave, ShutdownSlaveAction.URL);
-        assert !PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()) : "Unaffected";
+        assertFalse(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Unaffected");
     }
-
 
     /**
      * Sets up Jenkins security
      */
     private void setupSecurity() {
-        jenkins.jenkins.setSecurityRealm(jenkins.createDummySecurityRealm());
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         GlobalMatrixAuthorizationStrategy strategy = new GlobalMatrixAuthorizationStrategy();
-        strategy.add(Jenkins.READ, "anonymous");
-        strategy.add(Computer.CONNECT, "alice");
-        strategy.add(Computer.DISCONNECT, "alice");
-        strategy.add(Jenkins.READ, "bobby");
-        strategy.add(Jenkins.READ, "alice");
-        jenkins.jenkins.setAuthorizationStrategy(strategy);
+        strategy.add(Jenkins.READ, new PermissionEntry(AuthorizationType.EITHER, "anonymous"));
+        strategy.add(Computer.CONNECT, new PermissionEntry(AuthorizationType.EITHER, "alice"));
+        strategy.add(Computer.DISCONNECT, new PermissionEntry(AuthorizationType.EITHER, "alice"));
+        strategy.add(Jenkins.READ, new PermissionEntry(AuthorizationType.EITHER, "bobby"));
+        strategy.add(Jenkins.READ, new PermissionEntry(AuthorizationType.EITHER, "alice"));
+        j.jenkins.setAuthorizationStrategy(strategy);
     }
 
+    /**
+     * Stats the build
+     * @throws Exception if something goes wrong
+     */
     private void startBuild() throws Exception {
-        FreeStyleProject project = jenkins.createFreeStyleProject();
-        project.getBuildersList().add(new SleepBuilder(100000));
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.getBuildersList().add(new SleepBuilder(SLEEP_TIME));
         project.setAssignedLabel(slave.getSelfLabel());
         project.scheduleBuild2(0);
     }

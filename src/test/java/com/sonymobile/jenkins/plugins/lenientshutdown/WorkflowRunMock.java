@@ -26,6 +26,8 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import hudson.model.Run;
 
+import java.io.IOException;
+
 /**
  * Test mock of WorkflowRun.
  *
@@ -35,9 +37,9 @@ public abstract class WorkflowRunMock extends Run<WorkflowJobMock, WorkflowRunMo
     /**
      * Default constructor.
      * @param job - job
-     * @throws java.io.IOException - parent can throw
+     * @throws IOException - parent can throw
      */
-    public WorkflowRunMock(WorkflowJobMock job) throws java.io.IOException {
+    public WorkflowRunMock(WorkflowJobMock job) throws IOException {
         super(job);
     }
 }

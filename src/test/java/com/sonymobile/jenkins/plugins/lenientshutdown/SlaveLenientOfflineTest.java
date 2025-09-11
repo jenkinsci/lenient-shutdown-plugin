@@ -26,17 +26,20 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import hudson.security.ACL;
+import org.jenkinsci.plugins.matrixauth.AuthorizationType;
+import org.jenkinsci.plugins.matrixauth.PermissionEntry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.SleepBuilder;
@@ -54,25 +57,24 @@ import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.BuildTrigger;
 import jenkins.model.Jenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * Test class for taking individual slaves offline leniently.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
-public class SlaveLenientOfflineTest {
+@WithJenkins
+class SlaveLenientOfflineTest {
 
     private static final int JOB_SLEEP_TIME = 5000;
 
     /**
      * Jenkins rule instance.
      */
-    // CS IGNORE VisibilityModifier FOR NEXT 3 LINES. REASON: Mocks tests.
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+    private JenkinsRule j;
 
     private static final int TIMEOUT_SECONDS = 60;
-    private static final int QUIET_PERIOD = 15;
 
     private PluginImpl plugin;
 
@@ -81,23 +83,25 @@ public class SlaveLenientOfflineTest {
 
     /**
      * Prepares for test by creating slaves and disabling builds on master.
+     * @param rule the jenkins rule
      * @throws Exception if something goes wrong
      */
-    @Before
-    public void setUp() throws Exception {
-        Jenkins jenkins = jenkinsRule.getInstance();
-        GlobalMatrixAuthorizationStrategy authStategy = new GlobalMatrixAuthorizationStrategy();
-        authStategy.add(Jenkins.ADMINISTER, "alice");
-        jenkins.setAuthorizationStrategy(authStategy);
-        jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
-        jenkins.setQuietPeriod(0);
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
+        // can be removed with plugin-pom 5.x - see https://github.com/jenkinsci/jenkins-test-harness/pull/910
+        ACL.as2(ACL.SYSTEM2);
+        GlobalMatrixAuthorizationStrategy authStrategy = new GlobalMatrixAuthorizationStrategy();
+        authStrategy.add(Jenkins.ADMINISTER, new PermissionEntry(AuthorizationType.EITHER, "alice"));
+        j.jenkins.setAuthorizationStrategy(authStrategy);
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setQuietPeriod(0);
 
         plugin = PluginImpl.getInstance();
-        slave0 = jenkinsRule.createOnlineSlave();
-        slave1 = jenkinsRule.createOnlineSlave();
+        slave0 = j.createOnlineSlave();
+        slave1 = j.createOnlineSlave();
 
-
-        jenkinsRule.jenkins.setMode(Node.Mode.EXCLUSIVE); //Don't build on master
+        j.jenkins.setMode(Node.Mode.EXCLUSIVE); //Don't build on master
     }
 
     /**
@@ -106,19 +110,18 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testActivateShutdownNoBuilds() throws Exception {
+    void testActivateShutdownNoBuilds() throws Exception {
         toggleLenientSlaveOffline(slave0);
         assertTrue(slave0.toComputer().isTemporarilyOffline());
         assertFalse(slave1.toComputer().isTemporarilyOffline());
     }
-
 
     /**
      * Tests that the current build completes when lenient offline is activated during build.
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testActivateShutdownDuringBuild() throws Exception {
+    void testActivateShutdownDuringBuild() throws Exception {
         FreeStyleBuild build = activateShutdownDuringBuild();
 
         assertTrue(slave0.toComputer().isTemporarilyOffline());
@@ -131,9 +134,9 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testAllSlavesOfflineNothingBuilds() throws Exception {
-        Queue jenkinsQueue = Jenkins.getInstance().getQueue();
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testAllSlavesOfflineNothingBuilds() throws Exception {
+        Queue jenkinsQueue = Jenkins.get().getQueue();
+        FreeStyleProject project = j.createFreeStyleProject();
 
         toggleLenientSlaveOffline(slave0);
         toggleLenientSlaveOffline(slave1);
@@ -161,22 +164,22 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testChainBuildsOnOtherNode() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testChainBuildsOnOtherNode() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
         TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a slave (not the master).
 
         Node buildingOn = parent.getLastBuiltOn();
-        if (buildingOn == null || buildingOn == Jenkins.getInstance()) {
+        if (buildingOn == null || buildingOn == Jenkins.get()) {
             fail("Project was not built correctly");
         }
 
@@ -201,10 +204,10 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testMustBuildOnSameNode() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testMustBuildOnSameNode() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         slave0.getComputer().setTemporarilyOffline(true);
         //Everything will now build on slave1 since slave0 is offline.
@@ -213,7 +216,7 @@ public class SlaveLenientOfflineTest {
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
         toggleLenientSlaveOffline(slave1);
@@ -227,14 +230,14 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testActivateDeactivateShutdown() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testActivateDeactivateShutdown() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
         parent.setAssignedNode(slave0);
         child.setAssignedNode(slave0);
 
@@ -255,7 +258,7 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testShutdownSlaveResetter() throws Exception {
+    void testShutdownSlaveResetter() throws Exception {
         activateShutdownDuringBuild();
 
         //Deactivates temporarily offline mode:
@@ -270,9 +273,9 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testParameterizedBuildTrigger() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testParameterizedBuildTrigger() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         // Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
@@ -284,13 +287,13 @@ public class SlaveLenientOfflineTest {
                 waitForDownstreamBehavior, null);
 
         parent.getBuildersList().add(new TriggerBuilder(childTrigger));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         parent.scheduleBuild2(0).waitForStart();
         TimeUnit.SECONDS.sleep(1); //Waiting for the build to get assigned to a slave (not the master).
 
         Node buildingOn = parent.getLastBuiltOn();
-        if (buildingOn == null || buildingOn == Jenkins.getInstance()) {
+        if (buildingOn == null || buildingOn == Jenkins.get()) {
             fail("Project was not built correctly");
         }
 
@@ -315,7 +318,7 @@ public class SlaveLenientOfflineTest {
      */
     private void toggleLenientSlaveOffline(Node node) throws Exception {
         String url = node.toComputer().getUrl() + ShutdownSlaveAction.URL;
-        WebClient client = jenkinsRule.createWebClient();
+        WebClient client = j.createWebClient();
         client.login("alice");
         client.goTo(url);
     }
@@ -327,7 +330,7 @@ public class SlaveLenientOfflineTest {
      * @throws Exception if something goes wrong
      */
     private FreeStyleBuild activateShutdownDuringBuild() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+        FreeStyleProject project = j.createFreeStyleProject();
         project.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
         project.setAssignedNode(slave0);
 
@@ -351,5 +354,4 @@ public class SlaveLenientOfflineTest {
         }
         return build;
     }
-
 }
