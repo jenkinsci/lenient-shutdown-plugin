@@ -21,36 +21,48 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.sonymobile.jenkins.plugins.lenientshutdown.cli
+package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink
-import org.junit.Test
+import jenkins.model.Jenkins;
+import org.junit.Before;
+import org.junit.Rule;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WarExploder;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Tests for {@link LenientQuietDownCommand}.
+ * Base class for all CLI tests containing convenience methods.
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-class LenientQuietDownCommandTest extends BaseCliTest {
+abstract class BaseCliTest {
 
-    /**
-     * Runs the command with a message (-m)
-     */
-    @Test
-    void testRunWithMessage() {
-        assert cmd("lenient-quiet-down", "-m", "Bobby is cool").execute().waitFor() == 0 :
-                "Command did not exit correctly"
-        assert ShutdownManageLink.instance.isGoingToShutdown() : "Shutdown flag not set to true"
-        assert ShutdownDecorator.instance.shutdownMessage == "Bobby is cool" : "Non cool message"
+    @Rule
+    public JenkinsRule jenkins = new JenkinsRule();
+
+    private File jenkinsCliJar;
+    private File java;
+
+    @Before
+    public void before() throws Exception {
+        jenkinsCliJar = new File(WarExploder.getExplodedDir(), "WEB-INF/lib/cli-" + Jenkins.VERSION + ".jar");
+        java = new File(System.getProperty("java.home"), "bin/java");
     }
 
-    /**
-     * Runs the command without a message
-     */
-    @Test
-    void testRunWithoutMessage() {
-        assert cmd("lenient-quiet-down").execute().waitFor() == 0 : "Command did not exit correctly"
-        assert ShutdownManageLink.instance.isGoingToShutdown() : "Shutdown flag not set to true"
+    protected String[] cmd(String... cmd) throws Exception {
+        List<String> prefix = new ArrayList<>();
+        prefix.add(java.getPath());
+        prefix.add("-jar");
+        prefix.add(jenkinsCliJar.getPath());
+        prefix.add("-s");
+        prefix.add(jenkins.getURL().toString());
+
+        prefix.addAll(Arrays.asList(cmd));
+
+        return prefix.toArray(new String[0]);
     }
 }

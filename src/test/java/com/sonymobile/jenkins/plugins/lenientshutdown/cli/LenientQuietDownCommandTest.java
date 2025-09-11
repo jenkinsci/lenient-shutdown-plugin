@@ -21,35 +21,36 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.sonymobile.jenkins.plugins.lenientshutdown.cli
+package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
-import jenkins.model.Jenkins
-import org.junit.Before
-import org.junit.Rule
-import org.jvnet.hudson.test.GroovyJenkinsRule
-import org.jvnet.hudson.test.WarExploder
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator;
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
+import org.junit.Test;
 
 /**
- * Base class for all CLI tests containing convenience methods.
+ * Tests for {@link LenientQuietDownCommand}.
  *
  * @author &lt;robert.sandell@sonymobile.com&gt;
  */
-class BaseCliTest {
-    @Rule
-    public GroovyJenkinsRule jenkins = new GroovyJenkinsRule()
+public class LenientQuietDownCommandTest extends BaseCliTest {
 
-    File jenkinsCliJar
-    File java
-
-    @Before
-    void before() {
-        final String jenkinsVersion = Jenkins.VERSION
-        jenkinsCliJar = new File(WarExploder.explodedDir, "WEB-INF/lib/cli-${jenkinsVersion}.jar")
-        java = new File(System.getProperty("java.home"), "bin/java")
+    /**
+     * Runs the command with a message (-m)
+     */
+    @Test
+    public void testRunWithMessage() throws Exception {
+        assert new ProcessBuilder(cmd("lenient-quiet-down", "-m", "Bobby is cool")).start().waitFor() == 0 :
+                "Command did not exit correctly";
+        assert ShutdownManageLink.getInstance().isGoingToShutdown() : "Shutdown flag not set to true";
+        assert ShutdownDecorator.getInstance().getShutdownMessage().equals("Bobby is cool") : "Non cool message";
     }
 
-    String[] cmd(String... cmd) {
-        def prefix = [ java.path, "-jar" , jenkinsCliJar.path, "-s", jenkins.getURL()]
-        return (prefix << (cmd as List)).flatten()
+    /**
+     * Runs the command without a message
+     */
+    @Test
+    public void testRunWithoutMessage() throws Exception {
+        assert new ProcessBuilder(cmd("lenient-quiet-down")).start().waitFor() == 0 : "Command did not exit correctly";
+        assert ShutdownManageLink.getInstance().isGoingToShutdown() : "Shutdown flag not set to true";
     }
 }
