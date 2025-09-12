@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.CollectionUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -51,6 +52,7 @@ import jenkins.security.SecurityContextExecutorService;
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
+@SuppressWarnings("deprecation" /* there's no way around it */)
 public class PluginImpl extends Plugin {
 
     /**
@@ -76,6 +78,18 @@ public class PluginImpl extends Plugin {
      */
     public static PluginImpl getInstance() {
         return Jenkins.get().getPlugin(PluginImpl.class);
+    }
+
+    /**
+     * Helper to replace the deprecated Computer#isTemporarilyOffline method.
+     *
+     * @param computer the {@link Computer} to query.
+     * @return {@code true} if this node is marked temporarily offline by the
+     *         user; if {@code false}, the node could be disconnected.
+     */
+    static boolean isTemporarilyOffline(final Computer computer) {
+        var node = computer.getNode();
+        return node != null && node.getTemporaryOfflineCause() != null;
     }
 
     /**
@@ -106,6 +120,10 @@ public class PluginImpl extends Plugin {
      *
      * @param computer the computer.
      */
+    @SuppressFBWarnings(
+        value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+        justification = "Fire and forget for asynchronous processing"
+    )
     public void setNodeOffline(final Computer computer) {
         if (computer == null) {
             return;
@@ -136,7 +154,7 @@ public class PluginImpl extends Plugin {
             if (currentUser == null) {
                 currentUser = User.getUnknown();
             }
-            computer.setTemporarilyOffline(true, new LenientOfflineCause(currentUser));
+            computer.setTemporaryOfflineCause(new LenientOfflineCause(currentUser));
         }
     }
 
@@ -151,10 +169,8 @@ public class PluginImpl extends Plugin {
     public boolean isAnyPermittedUpstreamQueueId(Set<Long> queueItemsIds, String nodeName) {
         boolean isPermitted = false;
         Set<Long> permittedQueueItemIds = getPermittedQueuedItemIds(nodeName);
-        if (permittedQueueItemIds != null) {
-            Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
-            isPermitted = !intersection.isEmpty();
-        }
+        Collection<?> intersection = CollectionUtils.intersection(queueItemsIds, permittedQueueItemIds);
+        isPermitted = !intersection.isEmpty();
         return isPermitted;
     }
 

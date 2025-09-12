@@ -68,7 +68,7 @@ public class ShutdownSlaveAction implements RootAction {
     public String getIconFileName() {
         String icon = null;
 
-        if (computer != null && !computer.isTemporarilyOffline()) {
+        if (computer != null && !PluginImpl.isTemporarilyOffline(computer)) {
             PluginImpl plugin = PluginImpl.getInstance();
             if (plugin.isNodeShuttingDown(computer.getName()) && computer.hasPermission(Computer.CONNECT)) {
                 icon =  DISABLE_ICON;

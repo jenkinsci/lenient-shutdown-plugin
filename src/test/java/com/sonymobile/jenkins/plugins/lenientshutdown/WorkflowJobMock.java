@@ -24,6 +24,9 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Queue;
 
@@ -32,14 +35,28 @@ import hudson.model.Queue;
  *
  * @author Artur Harasimiuk &lt;artur.harasimiuk@intel.com&gt;
  */
-public abstract class WorkflowJobMock extends Job<WorkflowJobMock, WorkflowRunMock> implements Queue.Task {
+public abstract class WorkflowJobMock
+    extends Job<WorkflowJobMock, WorkflowRunMock>
+    implements Queue.Task {
+
+    private final ItemGroup<Item> parent;
+
     /**
      * default constructor.
      * @param parent - parent
      * @param name - name
      */
-    public WorkflowJobMock(hudson.model.ItemGroup parent,
-                       String name) {
+    public WorkflowJobMock(
+        final ItemGroup<Item> parent,
+        final String name
+    ) {
         super(parent, name);
+        this.parent = parent;
+    }
+
+    @NonNull
+    @Override
+    public ItemGroup<Item> getParent() {
+        return parent;
     }
 }

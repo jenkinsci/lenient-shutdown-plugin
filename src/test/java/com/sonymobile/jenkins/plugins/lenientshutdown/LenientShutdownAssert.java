@@ -27,6 +27,8 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Computer;
+import hudson.model.Node;
 import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 
@@ -40,9 +42,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Assert methods used by the tests.
@@ -162,12 +164,28 @@ public final class LenientShutdownAssert {
      * @throws InterruptedException if something goes wrong
      */
     public static void assertSlaveGoesOffline(final DumbSlave slave) throws InterruptedException {
-        final boolean actual = waitFor(MAX_DURATION, () ->
-            slave.getComputer().isTemporarilyOffline()
-        );
+        final boolean actual = waitFor(MAX_DURATION, () -> {
+            return isTemporarilyOffline(slave);
+        });
         assertTrue(
             actual,
             "Node should shut down after builds are complete"
         );
+    }
+
+    /**
+     * Helper for tests, which start with an instance of {@link Node}, usually
+     * a {@link DumbSlave}.
+     *
+     * @param node an agent
+     * @return whether the agent was marked as temporarily offline;
+     *         {@code false} might be returned if the node was disconnected.
+     */
+    public static boolean isTemporarilyOffline(final Node node) {
+        final Computer computer = node.toComputer();
+        if (computer == null) {
+            throw new AssertionError("node did not have a computer");
+        }
+        return PluginImpl.isTemporarilyOffline(computer);
     }
 }
