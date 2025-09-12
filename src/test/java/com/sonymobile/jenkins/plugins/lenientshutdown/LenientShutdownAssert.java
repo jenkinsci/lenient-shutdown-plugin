@@ -24,18 +24,23 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -47,11 +52,76 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public final class LenientShutdownAssert {
 
     private static final int TIMEOUT_SECONDS = 60;
+    private static final int CHECK_INTERVAL_MILLIS = 100;
+    static final Duration MAX_DURATION =
+        Duration.ofSeconds(TIMEOUT_SECONDS);
 
     /**
      * Hiding constructor for utility class.
      */
     private LenientShutdownAssert() { }
+
+    /**
+     * Waits until the {@code maxDuration} or the {@code supplier} method
+     * returns {@code true} value, whichever is first.
+     *
+     * @param maxDuration a {@link Duration} instance representing how long to
+     *                    wait.
+     * @param supplier    a method that returns {@code true} when it is done;
+     *                    {@code false} otherwise.
+     * @return            {@code true} if {@code supplier} returned {@code true}
+     *                    before the {@code maxDuration} ran out;
+     *                    {@code false} otherwise.
+     * @throws InterruptedException if interrupted while sleeping.
+     */
+    public static boolean waitFor(
+        final Duration maxDuration,
+        final BooleanSupplier supplier
+    ) throws InterruptedException {
+        final Boolean result = waitFor(
+            maxDuration,
+            () -> {
+                final boolean booleanResult = supplier.getAsBoolean();
+                // checkstyle wanted me to avoid inline conditionals
+                if (booleanResult) {
+                    return true;
+                }
+                return null;
+            }
+        );
+        return Boolean.TRUE.equals(result);
+    }
+
+    /**
+     * Waits until the {@code maxDuration} or the {@code supplier} method
+     * returns a non-{@code null} value, whichever is first.
+     *
+     * @param <T>         the type of result expected to be returned by the
+     *                    {@code supplier}
+     * @param maxDuration a {@link Duration} instance representing how long to
+     *                    wait.
+     * @param supplier    a method that returns a non-null value when done.
+     * @return            the result of {@code supplier} if was non-{@code null}
+     *                    before the {@code maxDuration} ran out;
+     *                    {@code null} otherwise.
+     * @throws InterruptedException if interrupted while sleeping.
+     */
+    @CheckForNull
+    public static <T> T waitFor(
+        final Duration maxDuration,
+        final Supplier<T> supplier
+    ) throws InterruptedException {
+        final Instant start = Instant.now();
+        final Instant end = start.plus(maxDuration);
+        while (Instant.now().isBefore(end)) {
+            final T result = supplier.get();
+            if (result != null) {
+                return result;
+            }
+            TimeUnit.MILLISECONDS.sleep(CHECK_INTERVAL_MILLIS);
+        }
+        return null;
+    }
 
     /**
      * Asserts that argument projects are successfully built within a timely manner.
@@ -63,8 +133,7 @@ public final class LenientShutdownAssert {
         List<AbstractBuild> builds = new ArrayList<>(
                 Collections.nCopies(argumentProjects.length, null));
 
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
+        waitFor(MAX_DURATION, () -> {
             boolean allFinished = true;
             for (int i = 0; i < argumentProjects.length; i++) {
                 AbstractProject project = projects.get(i);
@@ -77,13 +146,8 @@ public final class LenientShutdownAssert {
                 }
             }
 
-            if (allFinished) {
-                break;
-            }
-
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
+            return allFinished;
+        });
 
         for (AbstractBuild build : builds) {
             assertNotNull(build);
@@ -97,17 +161,13 @@ public final class LenientShutdownAssert {
      * @param slave the slave to assert for
      * @throws InterruptedException if something goes wrong
      */
-    public static void assertSlaveGoesOffline(DumbSlave slave) throws InterruptedException {
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-
-            if (slave.getComputer().isTemporarilyOffline()) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-        assertTrue("Node should shut down after builds are complete",
-                slave.toComputer().isTemporarilyOffline());
+    public static void assertSlaveGoesOffline(final DumbSlave slave) throws InterruptedException {
+        final boolean actual = waitFor(MAX_DURATION, () ->
+            slave.getComputer().isTemporarilyOffline()
+        );
+        assertTrue(
+            actual,
+            "Node should shut down after builds are complete"
+        );
     }
 }

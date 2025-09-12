@@ -24,18 +24,23 @@
 
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.MAX_DURATION;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.security.ACL;
 import org.jenkinsci.plugins.matrixauth.AuthorizationType;
 import org.jenkinsci.plugins.matrixauth.PermissionEntry;
@@ -46,7 +51,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.SleepBuilder;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlPage;
 
 import hudson.model.AbstractProject;
 import hudson.model.FreeStyleBuild;
@@ -94,6 +99,7 @@ class GlobalLenientShutdownTest {
     @BeforeEach
     void beforeEach(JenkinsRule rule) throws Exception {
         j = rule;
+        j.jenkins.setQuietPeriod(0 /* otherwise the default is 5 */);
         // can be removed with plugin-pom 5.x - see https://github.com/jenkinsci/jenkins-test-harness/pull/910
         ACL.as2(ACL.SYSTEM2);
         GlobalMatrixAuthorizationStrategy authStrategy = new GlobalMatrixAuthorizationStrategy();
@@ -317,23 +323,25 @@ class GlobalLenientShutdownTest {
      * Waits for the given project to appear in the queue.
      *
      * @param project the project to wait for
-     * @throws InterruptedException if interupted
+     * @throws InterruptedException if interrupted
      */
-    private void waitForProjectInQueue(final FreeStyleProject project) throws InterruptedException {
+    private void waitForProjectInQueue(
+        final FreeStyleProject project
+    ) throws InterruptedException {
         final Queue queue = Queue.getInstance();
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
+        final AbstractProject queued = waitFor(
+            MAX_DURATION,
+            () -> {
             final Item[] items = queue.getItems();
             if (items.length > 0) {
                 AbstractProject firstQueued = (AbstractProject)items[0].task;
                 if (firstQueued.equals(project)) {
-                    break;
+                    return firstQueued;
                 }
             }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-        if (elapsedSeconds >= TIMEOUT_SECONDS) {
+            return null;
+        });
+        if (queued == null) {
             fail("Child project was not queued up within time limit");
         }
     }
@@ -355,6 +363,7 @@ class GlobalLenientShutdownTest {
 
         Item queueItem = waitForBlockedItem(project, TIMEOUT_SECONDS);
 
+        assertNotNull(queueItem);
         assertTrue(queueItem.isBlocked());
         assertEquals(Messages.IsAboutToShutDown(), queueItem.getWhy());
     }
@@ -367,20 +376,18 @@ class GlobalLenientShutdownTest {
      * @return the found item, null if the item didn't show up in the queue until timeout
      * @throws InterruptedException if interrupted
      */
+    @CheckForNull
     private Item waitForBlockedItem(FreeStyleProject project, int timeout) throws InterruptedException {
-        Queue jenkinsQueue = Jenkins.get().getQueue();
-        Item queueItem = jenkinsQueue.getItem(project);
-
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= timeout) {
-            queueItem = jenkinsQueue.getItem(project);
-            if (queueItem != null && queueItem.isBlocked()) {
-                return queueItem;
+        final Queue jenkinsQueue = Jenkins.get().getQueue();
+        return waitFor(
+            Duration.ofSeconds(timeout),
+            () -> {
+            final Item item = jenkinsQueue.getItem(project);
+            if (item.isBlocked()) {
+                return item;
             }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-        return queueItem;
+            return null;
+        });
     }
 
     /**
@@ -389,16 +396,14 @@ class GlobalLenientShutdownTest {
      * @throws InterruptedException if interrupted
      */
     private void waitForItemInQueue() throws InterruptedException {
-        Queue queue = Queue.getInstance();
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            if (queue.getItems().length > 0) {
-                return;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
+        final Queue queue = Queue.getInstance();
+        final boolean hasQueuedItem = waitFor(
+            MAX_DURATION,
+            () -> (queue.getItems().length > 0)
+        );
+        if (!hasQueuedItem) {
+            fail("Project was not queued up within time limit");
         }
-        fail("Project was not queued up within time limit");
     }
 
     /**
@@ -429,16 +434,12 @@ class GlobalLenientShutdownTest {
      * @throws InterruptedException if interrupted
      */
     private void waitForAnalysisToFinish() throws InterruptedException {
-        ShutdownManageLink shutdownManage = ShutdownManageLink.getInstance();
-        int elapsedSeconds = 0;
-        while (elapsedSeconds <= TIMEOUT_SECONDS) {
-            if (!shutdownManage.isAnalyzing()) {
-                break;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            elapsedSeconds++;
-        }
-        if (elapsedSeconds >= TIMEOUT_SECONDS) {
+        final ShutdownManageLink shutdownManage = ShutdownManageLink.getInstance();
+        final boolean analysisFinished = waitFor(
+            MAX_DURATION,
+            () -> !shutdownManage.isAnalyzing()
+        );
+        if (!analysisFinished) {
             fail("Shutdown Analysis didn't finish in time.");
         }
     }
@@ -464,6 +465,7 @@ class GlobalLenientShutdownTest {
 
         Item queueItem = waitForBlockedItem(project, TIMEOUT_SECONDS);
 
+        assertNotNull(queueItem);
         assertTrue(queueItem.isBlocked());
     }
 
@@ -534,6 +536,7 @@ class GlobalLenientShutdownTest {
         Item queueItem = waitForBlockedItem(nonWhiteListedProject, TIMEOUT_SECONDS);
 
         assertSuccessfulBuilds(parent, child);
+        assertNotNull(queueItem);
         assertThat(queueItem.isBlocked(), is(true));
     }
 
@@ -570,6 +573,7 @@ class GlobalLenientShutdownTest {
 
         Item queueItem = waitForBlockedItem(whiteListedProject, TIMEOUT_SECONDS);
 
+        assertNotNull(queueItem);
         assertThat(queueItem.isBlocked(), is(true));
     }
 

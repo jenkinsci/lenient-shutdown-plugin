@@ -114,9 +114,9 @@ public final class QueueUtils {
         } else {
             Queue queueInstance = Queue.getInstance();
 
-            Node node = Jenkins.getInstance().getNode(nodeName);
+            Node node = Jenkins.get().getNode(nodeName);
             if (nodeName.isEmpty()) { // Special case when building on master
-                node = Jenkins.getInstance();
+                node = Jenkins.get();
             }
 
             if (node != null) {
@@ -140,8 +140,8 @@ public final class QueueUtils {
     public static Set<Long> getRunningProjectQueueIds() {
         Set<Long> runningProjects = new HashSet<Long>();
 
-        List<Node> allNodes = new ArrayList<Node>(Jenkins.getInstance().getNodes());
-        allNodes.add(Jenkins.getInstance());
+        List<Node> allNodes = new ArrayList<Node>(Jenkins.get().getNodes());
+        allNodes.add(Jenkins.get());
 
         for (Node node : allNodes) {
             runningProjects.addAll(getRunninProjectsQueueIDs(node.getNodeName()));
@@ -158,9 +158,9 @@ public final class QueueUtils {
     public static Set<Long> getRunninProjectsQueueIDs(String nodeName) {
         Set<Long> runningProjects = new HashSet<Long>();
 
-        Node node = Jenkins.getInstance().getNode(nodeName);
+        Node node = Jenkins.get().getNode(nodeName);
         if (nodeName.isEmpty()) { // Special case when building on master
-            node = Jenkins.getInstance();
+            node = Jenkins.get();
         }
 
         if (node != null) {
@@ -234,8 +234,8 @@ public final class QueueUtils {
         if (item instanceof BuildableItem) {
             // Item is ready to build, we can make a full check if other slaves can build it.
             BuildableItem buildableItem = (BuildableItem)item;
-            Set<Node> allNodes = new HashSet<Node>(Jenkins.getInstance().getNodes());
-            allNodes.add(Jenkins.getInstance());
+            Set<Node> allNodes = new HashSet<Node>(Jenkins.get().getNodes());
+            allNodes.add(Jenkins.get());
 
             for (Node otherNode : allNodes) {
                 Computer otherComputer = otherNode.toComputer();

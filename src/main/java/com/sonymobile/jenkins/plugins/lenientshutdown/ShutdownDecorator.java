@@ -58,7 +58,7 @@ public class ShutdownDecorator extends PageDecorator {
      * @return the instance.
      */
     public static ShutdownDecorator getInstance() {
-        ExtensionList<ShutdownDecorator> list = Jenkins.getInstance().getExtensionList(ShutdownDecorator.class);
+        ExtensionList<ShutdownDecorator> list = Jenkins.get().getExtensionList(ShutdownDecorator.class);
         if (!list.isEmpty()) {
             return list.get(0);
         } else {
