@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Assert methods used by the tests.
@@ -60,8 +60,8 @@ public final class LenientShutdownAssert {
      */
     public static void assertSuccessfulBuilds(AbstractProject... argumentProjects) throws InterruptedException {
         List<AbstractProject> projects = Arrays.asList(argumentProjects);
-        List<AbstractBuild> builds = new ArrayList<AbstractBuild>(
-                Collections.<AbstractBuild>nCopies(argumentProjects.length, null));
+        List<AbstractBuild> builds = new ArrayList<>(
+                Collections.nCopies(argumentProjects.length, null));
 
         int elapsedSeconds = 0;
         while (elapsedSeconds <= TIMEOUT_SECONDS) {

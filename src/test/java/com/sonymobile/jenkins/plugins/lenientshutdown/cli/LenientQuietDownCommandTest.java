@@ -21,11 +21,15 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.sonymobile.jenkins.plugins.lenientshutdown.cli
+package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator
-import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink
-import org.junit.Test
+import org.junit.jupiter.api.Test;
+
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownDecorator;
+import com.sonymobile.jenkins.plugins.lenientshutdown.ShutdownManageLink;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link LenientQuietDownCommand}.
@@ -36,21 +40,24 @@ class LenientQuietDownCommandTest extends BaseCliTest {
 
     /**
      * Runs the command with a message (-m)
+     * @throws Exception if something goes wrong
      */
     @Test
-    void testRunWithMessage() {
-        assert cmd("lenient-quiet-down", "-m", "Bobby is cool").execute().waitFor() == 0 :
-                "Command did not exit correctly"
-        assert ShutdownManageLink.instance.isGoingToShutdown() : "Shutdown flag not set to true"
-        assert ShutdownDecorator.instance.shutdownMessage == "Bobby is cool" : "Non cool message"
+    void testRunWithMessage() throws Exception {
+        assertEquals(0, new ProcessBuilder(cmd("lenient-quiet-down", "-m", "Bobby is cool")).start().waitFor(),
+                "Command did not exit correctly");
+        assertTrue(ShutdownManageLink.getInstance().isGoingToShutdown(), "Shutdown flag not set to true");
+        assertEquals("Bobby is cool", ShutdownDecorator.getInstance().getShutdownMessage(), "Non cool message");
     }
 
     /**
      * Runs the command without a message
+     * @throws Exception if something goes wrong
      */
     @Test
-    void testRunWithoutMessage() {
-        assert cmd("lenient-quiet-down").execute().waitFor() == 0 : "Command did not exit correctly"
-        assert ShutdownManageLink.instance.isGoingToShutdown() : "Shutdown flag not set to true"
+    void testRunWithoutMessage() throws Exception {
+        assertEquals(0, new ProcessBuilder(cmd("lenient-quiet-down")).start().waitFor(),
+                "Command did not exit correctly");
+        assertTrue(ShutdownManageLink.getInstance().isGoingToShutdown(), "Shutdown flag not set to true");
     }
 }

@@ -25,25 +25,26 @@
 package com.sonymobile.jenkins.plugins.lenientshutdown;
 
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import hudson.security.ACL;
+import org.jenkinsci.plugins.matrixauth.AuthorizationType;
+import org.jenkinsci.plugins.matrixauth.PermissionEntry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.SleepBuilder;
-
-import org.powermock.api.mockito.PowerMockito;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
@@ -63,22 +64,22 @@ import hudson.plugins.parameterizedtrigger.TriggerBuilder;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.tasks.BuildTrigger;
 import jenkins.model.Jenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * Test class for global lenient shutdown mode.
  *
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
-public class GlobalLenientShutdownTest {
+@WithJenkins
+class GlobalLenientShutdownTest {
 
     private static final int JOB_SLEEP_TIME = 5000;
 
     /**
      * Jenkins rule instance.
      */
-    // CS IGNORE VisibilityModifier FOR NEXT 3 LINES. REASON: Mocks tests.
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+    private JenkinsRule j;
 
     private static final int TIMEOUT_SECONDS = 60;
     private static final int QUIET_PERIOD = 5;
@@ -87,36 +88,37 @@ public class GlobalLenientShutdownTest {
     /**
      * Changes the number of executors on the Jenkins master.
      * Runs before every test.
-     * @throws IOException if something goes wrong
+     * @param rule the jenkins rule
+     * @throws Exception if something goes wrong
      */
-    @Before
-    public void setUp() throws IOException {
-        Jenkins jenkins = jenkinsRule.getInstance();
-        GlobalMatrixAuthorizationStrategy authStategy = new GlobalMatrixAuthorizationStrategy();
-        authStategy.add(Jenkins.ADMINISTER, "alice");
-        jenkins.setAuthorizationStrategy(authStategy);
-        jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
-        jenkins.setNumExecutors(NUM_EXECUTORS);
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
+        // can be removed with plugin-pom 5.x - see https://github.com/jenkinsci/jenkins-test-harness/pull/910
+        ACL.as2(ACL.SYSTEM2);
+        GlobalMatrixAuthorizationStrategy authStrategy = new GlobalMatrixAuthorizationStrategy();
+        authStrategy.add(Jenkins.ADMINISTER, new PermissionEntry(AuthorizationType.EITHER, "alice"));
+        j.jenkins.setAuthorizationStrategy(authStrategy);
+        j.jenkins.setSecurityRealm(this.j.createDummySecurityRealm());
+        j.jenkins.setNumExecutors(NUM_EXECUTORS);
         //TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
-        jenkins.setNodes(jenkins.getNodes());
+        j.jenkins.setNodes(j.jenkins.getNodes());
     }
 
     /**
      * Tests that the URL for activating shutdown mode works as expected.
-     * @throws Exception if something goes wrong
      */
     @Test
-    public void testActivateShutdown() throws Exception {
+    void testActivateShutdown() {
         toggleLenientShutdown();
         assertThat(ShutdownManageLink.getInstance().isGoingToShutdown(), is(true));
     }
 
     /**
      * Tests that the URL for deactivating shutdown mode works as expected.
-     * @throws Exception if something goes wrong
      */
     @Test
-    public void testDeactivateShutdown() throws Exception {
+    void testDeactivateShutdown() {
         toggleLenientShutdown();
         toggleLenientShutdown();
         assertThat(ShutdownManageLink.getInstance().isGoingToShutdown(), is(false));
@@ -128,8 +130,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testBuildsDirectlyWhenShutdownDisabled() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testBuildsDirectlyWhenShutdownDisabled() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
 
         //Builds and waits until completion (timeout 1 min):
         FreeStyleBuild build = project.scheduleBuild2(0).get(1, TimeUnit.MINUTES);
@@ -143,8 +145,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testBlocksBuildWhenShutdownEnabled() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testBlocksBuildWhenShutdownEnabled() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
 
         toggleLenientShutdown();
         project.scheduleBuild2(0);
@@ -159,15 +161,13 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoesNotBlockAfterShutdownDisabledAgain() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testDoesNotBlockAfterShutdownDisabledAgain() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
 
         toggleLenientShutdown();
         QueueTaskFuture buildFuture = project.scheduleBuild2(0);
         Item queueItem = waitForBlockedItem(project, TIMEOUT_SECONDS);
-        if (!queueItem.isBlocked()) {
-            fail("Project was not blocked within time limit");
-        }
+        assertTrue(queueItem.isBlocked(), "Project was not blocked within time limit");
 
         //Disables shutdown mode
         toggleLenientShutdown();
@@ -185,14 +185,14 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoesNotBlockDownstream() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testDoesNotBlockDownstream() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
@@ -212,10 +212,10 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoesNotBlockParameterizedPluginDownstream() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testDoesNotBlockParameterizedPluginDownstream() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         BuildTriggerConfig childTrigger = new BuildTriggerConfig(child.getName(),
                 ResultCondition.ALWAYS, new NodeParameters());
@@ -224,7 +224,7 @@ public class GlobalLenientShutdownTest {
 
         parent.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(childTrigger));
         child.getPublishersList().add(new hudson.plugins.parameterizedtrigger.BuildTrigger(grandChildTrigger));
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
@@ -245,10 +245,10 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testParameterizedPluginBuildStep() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testParameterizedPluginBuildStep() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         //Gives lenient shutdown mode time to activate while parent is still building:
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
@@ -264,7 +264,7 @@ public class GlobalLenientShutdownTest {
         parent.getBuildersList().add(new TriggerBuilder(childTrigger));
         child.getBuildersList().add(new TriggerBuilder(grandChildTrigger));
 
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         //Trigger build of the first project, which starts the chain:
         parent.scheduleBuild2(0).waitForStart();
@@ -279,8 +279,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testLinkIsVisible() throws Exception {
-        WebClient w = jenkinsRule.createWebClient();
+    void testLinkIsVisible() throws Exception {
+        WebClient w = j.createWebClient();
         w.login("alice");
         HtmlPage managePage = w.goTo("manage");
         assertTrue(managePage.asNormalizedText().contains(ShutdownManageLink.getInstance().getDisplayName()));
@@ -292,15 +292,15 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoesNotBlockQueuedWithCompletedUpstream() throws Exception {
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
-        FreeStyleProject grandChild = jenkinsRule.createFreeStyleProject("grandchild");
+    void testDoesNotBlockQueuedWithCompletedUpstream() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
+        FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.getPublishersList().add(new BuildTrigger(grandChild.getName(), Result.SUCCESS));
         child.setQuietPeriod(QUIET_PERIOD);
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         //Trigger build of the parent project, and wait for it to finish:
         parent.scheduleBuild2(0).get();
@@ -344,8 +344,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testBlocksQueuedWithoutUpstream() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testBlocksQueuedWithoutUpstream() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
         project.scheduleBuild2(QUIET_PERIOD);
 
         //Wait for the project to queue up (in quiet period)
@@ -368,7 +368,7 @@ public class GlobalLenientShutdownTest {
      * @throws InterruptedException if interrupted
      */
     private Item waitForBlockedItem(FreeStyleProject project, int timeout) throws InterruptedException {
-        Queue jenkinsQueue = Jenkins.getInstance().getQueue();
+        Queue jenkinsQueue = Jenkins.get().getQueue();
         Item queueItem = jenkinsQueue.getItem(project);
 
         int elapsedSeconds = 0;
@@ -398,10 +398,7 @@ public class GlobalLenientShutdownTest {
             TimeUnit.SECONDS.sleep(1);
             elapsedSeconds++;
         }
-        if (elapsedSeconds >= TIMEOUT_SECONDS) {
-            fail("Project was not queued up within time limit");
-        }
-        return;
+        fail("Project was not queued up within time limit");
     }
 
     /**
@@ -411,8 +408,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDoesntBlockQueuedWithoutUpstreamWhenAllowAllQueuedEnabled() throws Exception {
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+    void testDoesntBlockQueuedWithoutUpstreamWhenAllowAllQueuedEnabled() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
         project.scheduleBuild2(QUIET_PERIOD);
 
         //Wait for the project to queue up (in quiet period)
@@ -453,9 +450,8 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testWhiteListedProjectsAreBlockedWhenQueueEmpty() throws Exception {
-
-        FreeStyleProject project = jenkinsRule.createFreeStyleProject("whitelisted");
+    void testWhiteListedProjectsAreBlockedWhenQueueEmpty() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject("whitelisted");
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         configuration.setAllowWhiteListedProjects(true);
@@ -478,16 +474,15 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
-
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.setQuietPeriod(QUIET_PERIOD);
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
-        FreeStyleProject whiteListedProject = jenkinsRule.createFreeStyleProject("whitelisted");
+        FreeStyleProject whiteListedProject = j.createFreeStyleProject("whitelisted");
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         configuration.setAllowWhiteListedProjects(true);
@@ -513,17 +508,16 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testNonWhiteListedProjectsAreBlockedWhenQueueNotEmpty() throws Exception {
-
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testNonWhiteListedProjectsAreBlockedWhenQueueNotEmpty() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.setQuietPeriod(QUIET_PERIOD);
 
-        FreeStyleProject nonWhiteListedProject = jenkinsRule.createFreeStyleProject("nonwhitelisted");
+        FreeStyleProject nonWhiteListedProject = j.createFreeStyleProject("nonwhitelisted");
 
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         configuration.setAllowWhiteListedProjects(true);
@@ -550,17 +544,16 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testWhiteListedProjectsAreBlockedWhenQueueNotEmptyAllBuildsFinished() throws Exception {
-
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testWhiteListedProjectsAreBlockedWhenQueueNotEmptyAllBuildsFinished() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.setQuietPeriod(QUIET_PERIOD);
 
-        FreeStyleProject whiteListedProject = jenkinsRule.createFreeStyleProject("whitelisted");
+        FreeStyleProject whiteListedProject = j.createFreeStyleProject("whitelisted");
 
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         configuration.setAllowWhiteListedProjects(true);
@@ -587,21 +580,20 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testDownstreamOfWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
-
-        FreeStyleProject parent = jenkinsRule.createFreeStyleProject("parent");
-        FreeStyleProject child = jenkinsRule.createFreeStyleProject("child");
+    void testDownstreamOfWhiteListedProjectsAreNotBlockedWhenQueueNotEmpty() throws Exception {
+        FreeStyleProject parent = j.createFreeStyleProject("parent");
+        FreeStyleProject child = j.createFreeStyleProject("child");
 
         parent.getPublishersList().add(new BuildTrigger(child.getName(), Result.SUCCESS));
         child.setQuietPeriod(QUIET_PERIOD);
 
-        FreeStyleProject whiteListed = jenkinsRule.createFreeStyleProject("whitelisted");
-        FreeStyleProject whiteListedChild = jenkinsRule.createFreeStyleProject("whitelistedchild");
-        FreeStyleProject whiteListedGrandChild = jenkinsRule.createFreeStyleProject("whitelistedgrandchild");
+        FreeStyleProject whiteListed = j.createFreeStyleProject("whitelisted");
+        FreeStyleProject whiteListedChild = j.createFreeStyleProject("whitelistedchild");
+        FreeStyleProject whiteListedGrandChild = j.createFreeStyleProject("whitelistedgrandchild");
         whiteListed.getPublishersList().add(new BuildTrigger(whiteListedChild.getName(), Result.SUCCESS));
         whiteListedChild.getPublishersList().add(new BuildTrigger(whiteListedGrandChild.getName(), Result.SUCCESS));
 
-        Jenkins.getInstance().rebuildDependencyGraph();
+        Jenkins.get().rebuildDependencyGraph();
 
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
         configuration.setAllowWhiteListedProjects(true);
@@ -620,10 +612,8 @@ public class GlobalLenientShutdownTest {
 
     /**
      * Toggles the lenient shutdown mode.
-     *
-     * @throws Exception if something goes wrong
      */
-    private void toggleLenientShutdown() throws Exception {
+    private void toggleLenientShutdown() {
         ShutdownManageLink.getInstance().performToggleGoingToShutdown();
     }
 
@@ -633,30 +623,31 @@ public class GlobalLenientShutdownTest {
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testIsApplicableWhenFalse() throws Exception {
+    void testIsApplicableWhenFalse() throws Exception {
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
 
         configuration.setAllowAllJobs(false);
-        AbstractProject project = jenkinsRule.createFreeStyleProject();
+        AbstractProject project = j.createFreeStyleProject();
         assertTrue(QueueUtils.isApplicable(project));
 
-        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        WorkflowJobMock job = mock(WorkflowJobMock.class);
         assertFalse(QueueUtils.isApplicable(job));
     }
+
     /**
      * Tests that all builds are started as normal when the shutdown mode has
      * not been initiated.
      * @throws Exception if something goes wrong
      */
     @Test
-    public void testIsApplicableWhenTrue() throws Exception {
+    void testIsApplicableWhenTrue() throws Exception {
         ShutdownConfiguration configuration = ShutdownConfiguration.getInstance();
 
         configuration.setAllowAllJobs(true);
-        AbstractProject project = jenkinsRule.createFreeStyleProject();
+        AbstractProject project = j.createFreeStyleProject();
         assertTrue(QueueUtils.isApplicable(project));
 
-        WorkflowJobMock job = PowerMockito.mock(WorkflowJobMock.class);
+        WorkflowJobMock job = mock(WorkflowJobMock.class);
         assertTrue(QueueUtils.isApplicable(job));
     }
 }

@@ -21,12 +21,17 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.sonymobile.jenkins.plugins.lenientshutdown.cli
+package com.sonymobile.jenkins.plugins.lenientshutdown.cli;
 
-import com.sonymobile.jenkins.plugins.lenientshutdown.PluginImpl
-import hudson.slaves.DumbSlave
-import hudson.slaves.OfflineCause
-import org.junit.Test
+import org.junit.jupiter.api.Test;
+
+import com.sonymobile.jenkins.plugins.lenientshutdown.PluginImpl;
+import hudson.slaves.DumbSlave;
+import hudson.slaves.OfflineCause;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link LenientOnlineNodeCommand}.
@@ -37,25 +42,29 @@ class LenientOnlineNodeCommandTest extends BaseCliTest {
 
     /**
      * Tests the command to bring it online from being lenient offline.
+     * @throws Exception if something goes wrong
      */
     @Test
-    void testRunFromLenient() {
-        DumbSlave slave = jenkins.createOnlineSlave()
-        PluginImpl.instance.toggleNodeShuttingDown(slave.nodeName)
-        assert PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be offline"
-        assert cmd("lenient-online-node", slave.nodeName).execute().waitFor() == 0 : "Cmd error"
-        assert !PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be online"
+    void testRunFromLenient() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
+        PluginImpl.getInstance().toggleNodeShuttingDown(slave.getNodeName());
+        assertTrue(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Should be offline");
+        assertEquals(0, new ProcessBuilder(cmd("lenient-online-node", slave.getNodeName())).start().waitFor(),
+                "Cmd error");
+        assertFalse(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Should be online");
     }
 
     /**
      * Tests the command to bring it online from being temporary offline.
+     * @throws Exception if something goes wrong
      */
     @Test
-    void testRunFromTemporary() {
-        DumbSlave slave = jenkins.createOnlineSlave()
-        slave.toComputer().setTemporarilyOffline(true, new OfflineCause.ByCLI("Bomb"))
-        assert cmd("lenient-online-node", slave.nodeName).execute().waitFor() == 0 : "Cmd error"
-        assert !PluginImpl.instance.isNodeShuttingDown(slave.nodeName) : "Should be online"
-        assert slave.toComputer().isOnline() : "Should be online"
+    void testRunFromTemporary() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
+        slave.toComputer().setTemporarilyOffline(true, new OfflineCause.ByCLI("Bomb"));
+        assertEquals(0, new ProcessBuilder(cmd("lenient-online-node", slave.getNodeName())).start().waitFor(),
+                "Cmd error");
+        assertFalse(PluginImpl.getInstance().isNodeShuttingDown(slave.getNodeName()), "Should be online");
+        assertTrue(slave.toComputer().isOnline(), "Should be online");
     }
 }
