@@ -1,8 +1,9 @@
-lenient-shutdown-plugin
+Lenient Shutdown plugin
 =======================
 
 This plugin lets you put Jenkins in shutdown mode but still allow any downstream builds of those currently running to also complete.
 Similar functionality for taking nodes temporarily offline.
+
 
 ## Building
 
