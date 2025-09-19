@@ -107,8 +107,6 @@ class GlobalLenientShutdownTest {
         j.jenkins.setAuthorizationStrategy(authStrategy);
         j.jenkins.setSecurityRealm(this.j.createDummySecurityRealm());
         j.jenkins.setNumExecutors(NUM_EXECUTORS);
-        //TODO https://github.com/jenkinsci/jenkins/pull/1596 renders this workaround unnecessary
-        j.jenkins.setNodes(j.jenkins.getNodes());
     }
 
     /**

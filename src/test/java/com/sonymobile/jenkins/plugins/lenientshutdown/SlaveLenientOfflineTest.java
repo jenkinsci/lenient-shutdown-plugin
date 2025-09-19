@@ -27,17 +27,18 @@ package com.sonymobile.jenkins.plugins.lenientshutdown;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.MAX_DURATION;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSlaveGoesOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.assertSuccessfulBuilds;
+import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.isTemporarilyOffline;
 import static com.sonymobile.jenkins.plugins.lenientshutdown.LenientShutdownAssert.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.TimeUnit;
 
-import hudson.model.Computer;
 import hudson.model.queue.CauseOfBlockage;
+import hudson.slaves.OfflineCause;
 import hudson.security.ACL;
 import org.jenkinsci.plugins.matrixauth.AuthorizationType;
 import org.jenkinsci.plugins.matrixauth.PermissionEntry;
@@ -116,8 +117,8 @@ class SlaveLenientOfflineTest {
     @Test
     void testActivateShutdownNoBuilds() throws Exception {
         toggleLenientSlaveOffline(slave0);
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
-        assertFalse(slave1.toComputer().isTemporarilyOffline());
+        assertTrue(isTemporarilyOffline(slave0));
+        assertFalse(isTemporarilyOffline(slave1));
     }
 
     /**
@@ -128,7 +129,7 @@ class SlaveLenientOfflineTest {
     void testActivateShutdownDuringBuild() throws Exception {
         FreeStyleBuild build = activateShutdownDuringBuild();
 
-        assertTrue(slave0.toComputer().isTemporarilyOffline());
+        assertTrue(isTemporarilyOffline(slave0));
         assertEquals(Result.SUCCESS, build.getResult());
     }
 
@@ -211,7 +212,7 @@ class SlaveLenientOfflineTest {
         FreeStyleProject child = j.createFreeStyleProject("child");
         FreeStyleProject grandChild = j.createFreeStyleProject("grandchild");
 
-        slave0.getComputer().setTemporarilyOffline(true);
+        slave0.getComputer().setTemporaryOfflineCause(new OfflineCause.ByCLI("test"));
         //Everything will now build on slave1 since slave0 is offline.
 
         parent.getBuildersList().add(new SleepBuilder(JOB_SLEEP_TIME));
@@ -264,7 +265,7 @@ class SlaveLenientOfflineTest {
         activateShutdownDuringBuild();
 
         //Deactivates temporarily offline mode:
-        slave0.toComputer().setTemporarilyOffline(false);
+        slave0.toComputer().setTemporaryOfflineCause(null);
 
         assertFalse(plugin.isNodeShuttingDown(slave0.getNodeName()));
     }
@@ -347,11 +348,7 @@ class SlaveLenientOfflineTest {
         FreeStyleBuild build = buildFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS); //Wait for completion
 
         waitFor(MAX_DURATION, () -> {
-            final Computer computer = slave0.toComputer();
-            if (computer != null) {
-                return computer.isTemporarilyOffline();
-            }
-            return false;
+            return isTemporarilyOffline(slave0);
         });
         return build;
     }

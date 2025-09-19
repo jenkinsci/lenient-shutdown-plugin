@@ -63,7 +63,7 @@ public class LenientOnlineNodeCommand extends CLICommand {
                 plugin.toggleNodeShuttingDown(node.getNodeName());
                 stdout.println(Messages.NodeTakenOnline(node.getNodeName()));
             } else if (computer.isOffline()) {
-                computer.setTemporarilyOffline(false, null);
+                computer.setTemporaryOfflineCause(null);
                 stdout.println(Messages.NodeTakenOnline(node.getNodeName()));
             } else {
                 stdout.println(Messages.Err_NodeAlreadyOnline(node.getNodeName()));

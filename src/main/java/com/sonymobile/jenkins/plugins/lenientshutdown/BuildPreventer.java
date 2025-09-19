@@ -119,7 +119,7 @@ public class BuildPreventer extends QueueTaskDispatcher {
             Set<Long> upstreamQueueIds = QueueUtils.getUpstreamQueueIds(item);
 
             if (otherNodeCanBuild
-                    || (!otherNodeCanBuild && !plugin.isAnyPermittedUpstreamQueueId(upstreamQueueIds, nodeName))) {
+                    || !plugin.isAnyPermittedUpstreamQueueId(upstreamQueueIds, nodeName)) {
                 logger.log(Level.FINE, "Preventing project {0} from running on node {1}, "
                         + "since lenient shutdown is active", new String[] { item.getDisplayName(), nodeName });
                 blockage = new NodeShutdownBlockage();

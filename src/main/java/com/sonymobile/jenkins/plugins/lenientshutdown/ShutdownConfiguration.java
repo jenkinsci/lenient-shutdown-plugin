@@ -29,8 +29,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 import hudson.Extension;
 import jenkins.model.GlobalConfiguration;
@@ -64,6 +65,11 @@ public class ShutdownConfiguration extends GlobalConfiguration {
     /**
      * Constructor, loads persisted configuration.
      */
+    @SuppressFBWarnings(
+        value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
+        justification = "The #load() method is documented as: "
+            + "'The constructor of the derived class must call this method.'"
+    )
     public ShutdownConfiguration() {
         load();
     }
@@ -179,7 +185,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
      * @throws FormException if the form was malformed
      */
     @Override
-    public boolean configure(StaplerRequest staplerRequest, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest2 staplerRequest, JSONObject json) throws FormException {
         shutdownMessage = json.getString("shutdownMessage");
         allowAllQueuedItems = json.getBoolean("allowAllQueuedItems");
         allowWhiteListedProjects = json.getBoolean("allowWhiteListedProjects");
