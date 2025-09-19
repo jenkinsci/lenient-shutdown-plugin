@@ -9,7 +9,7 @@
 
     <groupId>com.sonymobile.jenkins.plugins.lenientshutdown</groupId>
     <artifactId>lenientshutdown</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>${revision}.${changelist}</version>
     <name>Lenient shutdown plugin</name>
     <url>https://plugins.jenkins.io/lenientshutdown/</url>
     <packaging>hpi</packaging>
@@ -133,8 +133,8 @@
     </build>
 
     <properties>
-        <revision>1.1.2</revision>
-        <changelist>-SNAPSHOT</changelist>
+        <revision>2</revision>
+        <changelist>999999-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/lenient-shutdown-plugin</gitHubRepo>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jenkins.baseline>2.504</jenkins.baseline>
