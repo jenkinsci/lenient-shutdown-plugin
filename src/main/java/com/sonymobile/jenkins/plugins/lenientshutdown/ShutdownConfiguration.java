@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest2;
 
 import hudson.Extension;
@@ -153,7 +152,7 @@ public class ShutdownConfiguration extends GlobalConfiguration {
      * @return string with the white listed projects separated by newlines
      */
     public String getWhiteListedProjectsText() {
-        return StringUtils.join(whiteListedProjects, "\n");
+        return String.join("\n", whiteListedProjects);
     }
 
     /**
